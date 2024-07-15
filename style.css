@@ -1,0 +1,53 @@
+body {
+  color: #FFFFFF;
+  background-color: #000000;
+  line-height: 1.5;
+  margin: 4em auto;
+  max-width: 25em;
+  padding: 0 1em;
+  font-family: "VT323", monospace;
+  font-size: 20px;
+  font-weight: 400;
+  font-style: normal;
+}
+
+typewriter-animation {
+  white-space: pre-wrap;
+  display: block;
+}
+
+.menu {
+  display: flex;
+  gap: 16px;
+}
+
+img {
+  background-color: black;
+  border-radius: 0.75rem;
+  margin-top: 50px;
+  margin-bottom: 50px;
+}
+
+.mt {
+  margin-top: 8px;
+}
+
+.mb {
+  margin-bottom: 16px;
+}
+
+.photo-collection {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: 90vw;
+}
+
+a {
+  color: #FFFF88;
+  text-decoration: underline;
+}
+
+hr {
+  border: 1px solid #444444;
+}
