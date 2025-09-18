@@ -1,0 +1,14 @@
+{{ define "main" }}
+    <div class="time-list">
+        <ul>
+            {{ range .Pages }}
+            <li>
+                <span>{{- partial "date" .Date -}}</span>
+                <div><a href="{{ .RelPermalink }}">{{ .LinkTitle }}</a></div>
+            </li>
+            {{ end }}
+        </ul>
+    </div><br/>
+    {{ .Content }}
+    <img class="avatar" src="assets/avatar.jpg" alt="Avatar">
+{{ end }}

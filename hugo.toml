@@ -1,0 +1,18 @@
+baseURL = 'https://example.org/'
+languageCode = 'en-us'
+title = "allvpv's space 🛖"
+theme = 'shibui'
+
+[params]
+  author = "allvpv <Przemyslaw Kusiak>"
+  email = "mail@allvpv.org"
+
+[menu]
+  [[menu.main]]
+    name = "Posts"
+    url = "/"
+    weight = 1
+  [[menu.main]]
+    name = "About"
+    url = "/about/"
+    weight = 2

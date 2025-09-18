@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en-us" dir="ltr">
+<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script>
+  <meta charset="utf-8">
+<meta name="viewport" content="width=device-width">
+<title>Git&#39;s hidden simplicity | allvpv&#39;s space 🛖</title>
+<link rel="apple-touch-icon" sizes="57x57" href="/favicon_io/apple-icon-57x57.png">
+<link rel="apple-touch-icon" sizes="60x60" href="/favicon_io/apple-icon-60x60.png">
+<link rel="apple-touch-icon" sizes="72x72" href="/favicon_io/apple-icon-72x72.png">
+<link rel="apple-touch-icon" sizes="76x76" href="/favicon_io/apple-icon-76x76.png">
+<link rel="apple-touch-icon" sizes="114x114" href="/favicon_io/apple-icon-114x114.png">
+<link rel="apple-touch-icon" sizes="120x120" href="/favicon_io/apple-icon-120x120.png">
+<link rel="apple-touch-icon" sizes="144x144" href="/favicon_io/apple-icon-144x144.png">
+<link rel="apple-touch-icon" sizes="152x152" href="/favicon_io/apple-icon-152x152.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/favicon_io/apple-icon-180x180.png">
+<link rel="icon" type="image/png" sizes="192x192"  href="/favicon_io/android-icon-192x192.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon_io/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="96x96" href="/favicon_io/favicon-96x96.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon_io/favicon-16x16.png">
+<link rel="manifest" href="/favicon_io/manifest.json">
+<meta name="msapplication-TileColor" content="#ffffff">
+<meta name="msapplication-TileImage" content="/favicon_io/ms-icon-144x144.png">
+<meta name="theme-color" content="#ffffff">
+
+
+    <link rel="stylesheet" href="/css/main.css">
+
+
+      <script src="/js/main.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+
+
+</head>
+<body>
+  
+  
+  <script>// These should be inlined
+const themeAttribute = "data-theme";
+const darkThemeName = "dark";
+const normalThemeName = "light";
+
+// Get the initial state
+const darkModePreferredQuery = window.matchMedia("(prefers-color-scheme: dark)");
+const currentTheme = localStorage.getItem(themeAttribute) || (darkModePreferredQuery.matches ? darkThemeName : normalThemeName);
+document.documentElement.setAttribute(themeAttribute, currentTheme);
+
+window.addEventListener("load", function () {
+  const toggleSwitches = document.querySelectorAll(".theme-toggle");
+
+  // Helpers
+  const changeTheme = (isDark) => {
+    const newTheme = isDark ? darkThemeName : normalThemeName;
+    document.documentElement.setAttribute(themeAttribute, newTheme);
+    localStorage.setItem(themeAttribute, newTheme);
+  };
+
+  // Update when toggle button is changed
+  toggleSwitches.forEach(t => {
+    t.addEventListener("click", e => {
+      const isDark = localStorage.getItem(themeAttribute) !== darkThemeName;
+      changeTheme(isDark);
+    });
+  });
+
+  // Update when browser theme is changed
+  if (darkModePreferredQuery.addEventListener) {
+    darkModePreferredQuery.addEventListener("change", event => {
+      changeTheme(event.matches);
+    })
+  }
+});
+</script>
+  
+  <header>
+    <header>
+  <nav class="path-nav">
+    <ol>
+      
+  
+    
+  
+    <li>
+      <a href="/">allvpv&#39;s space 🛖</a>
+    </li>
+  
+
+  
+
+    </ol>
+    <button class="theme-toggle" id="theme-toggle" title="Toggles light & dark" aria-label="auto" aria-live="polite">
+      <svg class="sun-and-moon" aria-hidden="true" width="24" height="24" viewBox="0 0 24 24">
+        <mask class="moon" id="moon-mask">
+          <rect x="0" y="0" width="100%" height="100%" fill="white" />
+          <circle cx="24" cy="10" r="6" fill="black" />
+        </mask>
+        <circle class="sun" cx="12" cy="12" r="6" mask="url(#moon-mask)" fill="currentColor" />
+        <g class="sun-beams" stroke="currentColor">
+          <line x1="12" y1="1" x2="12" y2="3" />
+          <line x1="12" y1="21" x2="12" y2="23" />
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+          <line x1="1" y1="12" x2="3" y2="12" />
+          <line x1="21" y1="12" x2="23" y2="12" />
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+         </g>
+      </svg>
+    </button>
+
+</header>
+
+
+
+
+  </header>
+  <main>
+    
+  <div class="date">
+  <time datetime="2025-09-13">
+    2025-09-13&nbsp;
+  </time>
+  <span class="author">
+    by Przemysław Kusiak
+  </span>
+</div>
+
+  <h1 class="title">Git&#39;s hidden simplicity</h1>
+  <h2 class="subtitle">What&#39;s behind every commit</h2>
+  
+
+
+  
+  
+  
+  
+
+  <p><img src="../assets/git_initial_rev.jpg" alt="Ambient terminal displaying the first commit of Git and a Git logo"></p>
+<p>Many programmers would admit this: our knowledge of Git tends to be pretty…
+superficial. “Oops, what happened? Screw that, I’ll cherry pick my commits and
+start again on a fresh branch”.</p>
+<p>I’ve been there. I knew the basic use cases. I even thought I was pretty
+experienced after a hundred or so resolved merge conflicts. But the confidence
+or fluency somehow wasn’t coming. It was a hunch: learned scenarios, commands
+from Stack Overflow or ChatGPT, trivia-like knowledge without a solid base.</p>
+<p>In software engineering, you don’t need to have <em>all the knowledge</em>: you just
+need to <em>quickly identify and fetch the missing bits of knowledge</em>. My goal is
+to give you that low-level grounding to sharpen your intuition. Git isn’t
+really complicated in its principles!</p>
+<p>Disclaimer: I am not a Git expert either. Let’s learn together.</p>
+<h2 id="in-the-beginning-there-were-hashes">In the beginning, there were hashes.</h2>
+<p>Do you know how <em>commit hashes</em> are generated? I have to admit, I thought for a
+while that those hashes were somehow randomized. After all, I can run <code>git commit --amend</code>, change nothing, and still get the same commit, but with a new
+hash, right? Likewise, <code>cherry-pick</code>ing the same commit onto another branch
+gives me yet another hash.</p>
+<p>Boy, I couldn’t be more wrong. The commit hash is literally just a SHA-1
+checksum of the information that constitutes the commit. So two identical
+commits have identical hashes. Let’s look what a commit consists of. Run the
+following command:</p>
+<pre><code>$ git --no-replace-objects cat-file commit HEAD
+</code></pre>
+<p><em>(In case you don’t know: HEAD resolves to the commit you currently checked
+out)</em>. Let’s call the output of this command the payload. For example, the
+payload might be:</p>
+<pre><code>tree a55ff598781e0c7870fa5c87154a7b731b1c3336
+parent c1f4476718c232f4fd8d24cf6249e42995734abc
+author Przemysław Kusiak &lt;mail@allvpv.org&gt; 1757612521 +0200
+committer Przemysław Kusiak &lt;mail@allvpv.org&gt; 1757612563 +0200
+
+nushell: short `git status` (`-s`) by default, remove ambiguity, scale factor
+</code></pre>
+<p>That’s it. That’s the full commit. Then prepend the following
+<strong>null-terminated</strong> string to the <code>payload</code>: “<code>commit 298</code>”, where <code>298</code> is the
+size of the payload in bytes. Compute a SHA-1 over the result and boom: you’ve
+got a Git commit hash! Try it yourself:</p>
+<pre><code>$ git --no-replace-objects cat-file commit HEAD &gt; payload
+$ printf &quot;commit %s\0&quot; $(wc -c &lt; payload) &gt; payload_with_header
+$ cat payload &gt;&gt; payload_with_header
+$ sha1sum payload_with_header
+</code></pre>
+<p>Now compare the output to the actual commit hash:</p>
+<pre><code>$ git rev-parse HEAD
+</code></pre>
+<p>It works. So simple. Now, let’s ponder what the <code>payload</code> contains:</p>
+<ol>
+<li><code>tree</code> – the hash of a tree object. More on trees later; for now, think of
+it as a snapshot of all files in the repo.</li>
+<li><code>parent</code> – a hash of parent commit(s).</li>
+<li><code>author</code>, <code>committer</code> – self-explanatory, but notice that they include date
+(seconds since the Unix epoch) and time zone; <a href="https://stackoverflow.com/a/6755848">in several scenarios it’s
+possible that the author is not the
+committer</a>.</li>
+</ol>
+<p>the commit message.</p>
+<h2 id="aha">Aha!</h2>
+<p>We are not hashing the <strong>diff</strong> a commit introduces. Rather, the commit
+<strong>header</strong>, together with the referenced <strong>tree</strong> and <strong>parent</strong>, determines
+the hash.</p>
+<p>And now it’s easy to see what happens when you run <code>git commit --amend</code> and
+change “nothing”. Something still changes: the date in the <code>committer</code> field!
+(Note that <code>git show</code> doesn’t display the committer; the date you see comes
+from the author field). But if you are fast enough to amend within the same
+second as the original commit, the commit hash remains unchanged!</p>
+<p>And on a <code>cherry-pick</code>, the parent field changes, and usually, though not
+always, the tree field as well.</p>
+<blockquote>
+<p>If you’re a careful reader, you might wonder what the parent field is for the
+first commit in a repo, and for a merge commit. What do you think? Grab a
+repo and verify.</p></blockquote>
+<h2 id="so-cool-but-what-is-a-tree">So cool! But what is a tree?</h2>
+<p>We saw that a commit references a tree. Let’s check what it really is:</p>
+<pre><code>$ tree_hash=a55ff598781e0c7870fa5c87154a7b731b1c3336
+$ git cat-file tree $tree_hash
+</code></pre>
+<p>Oops, the <code>payload</code> isn’t human-readable text; it’s binary data. But just like
+with commits, if you prepend “<code>tree &lt;payloadSize&gt;&lt;NUL&gt;</code>” to the payload bytes,
+you can compute the tree’s hash from the result!</p>
+<p>Fortunately, Git lets you pretty-print a tree’s contents:</p>
+<pre><code>$ git cat-file -p $tree_hash
+100644 blob b9768f0236f3d932e680f1edfca69f2d8de776b8    .gitconfig
+100644 blob d960f12b4f187ee82d7a1ac545e6452ebb9c2d5b    .gitignore
+100644 blob 2bb1c65b1090c881adc201d78ea2654d575146ea    README.md
+100644 blob a26fd7ac25e457c22af2f2436aac581b50b0558a    bashrc
+040000 tree 4572efa73b2d3d822ef76b6771a2dc4f9a22772a    bin
+100755 blob b9956764ddc570a78d5daa825c6b0ad4cafbc26e    bootstrap.sh
+040000 tree ad5b3107519883dad04997e0e1161ddbb392fc63    keyboard
+040000 tree eea34f8abc6358d88ca654774dd00d8bca32fa58    lumber
+040000 tree cfea0128ab25dfd83ec43f035adfe71ab1e18583    neovide
+040000 tree b2504f0e9c082f5a04d07c3eb41116fecb821e7d    nushell
+040000 tree 6eb525af45a6f346c34a9add71600c6b8a5c9729    nvim
+100644 blob 287ee75ab7c9fea8995c9219e8f90b08ba457134    screen.png
+</code></pre>
+<p>A <code>tree</code> is just like a directory: it references other files (blobs) and
+directories (trees) nested inside it. It looks a bit like ls output. The first
+column records, of course, the Unix file permissions.</p>
+<h2 id="as-for-the-blob-you-can-probably-already-guess-what-it-is">As for the blob, you can probably already guess what it is.</h2>
+<p>Nothing more, nothing less than the raw file content – no metadata. And yes,
+prepend null-terminated “<code>blob &lt;file_size&gt;</code>” to the bytes, run sha1sum, and
+you’ll get the blob’s hash!</p>
+<h2 id="nothing-redundant-is-stored">Nothing redundant is stored.</h2>
+<p>No extra metadata such as file modification time: that can be inferred from
+commit history. <strong>A simple and immutable structure</strong>: you can’t change a commit
+without changing its hash.</p>
+<p>And if you think about it, you will notice that it is a…</p>
+<h2 id="directed-acyclic-graph-dag">&hellip;Directed Acyclic Graph (DAG)</h2>
+<p>There are three types of nodes in this graph: commits, trees, and blobs. And four types of edges:</p>
+<ul>
+<li><strong>commit → commit</strong> – parent relationship; a commit has zero or more parents (usually one).</li>
+<li><strong>commit → tree</strong> – each commit points to exactly one tree (a snapshot of files and folders).</li>
+<li><strong>tree → tree</strong> – subdirectory relationship.</li>
+<li><strong>tree → blob</strong> – files contained in a directory.</li>
+</ul>
+<p>Interestingly, the graph fragment reachable from a <strong>tree</strong> node doesn’t have
+to form a strict tree. For example, a single blob can be referenced by multiple
+parents.</p>
+<h2 id="what-about-branches">What about branches?</h2>
+<p>As you probably know, a branch is just a ref pointing to a commit hash. If you
+run this in your repo root,</p>
+<pre><code>$ ls .git/refs/heads/
+</code></pre>
+<p>you’ll see all local branches as file names, each file just a few bytes, with
+the referenced commit’s hash inside. Likewise, <code>.git/refs/remotes/origin/</code>
+directory contains pointers to the remote-tracking branches.</p>
+<p>So you can think of branches as labels for commit histories. If you commit on
+main:</p>
+<ul>
+<li>the new commit will have the hash pointed to by <code>main</code> as its parent field;</li>
+<li>then the <code>main</code> branch label will be updated to point to the new commit’s hash.</li>
+</ul>
+<p>And the <code>.git/HEAD</code> file contains the name of the current branch – or commit
+hash, if you’re in a detached state. This special pointer tells Git what is
+currently checked out.</p>
+<h2 id="thats-it-for-today">That’s it for today.</h2>
+<p>I hope this clarifies your mental model and clears some of the mystery around
+Git. The building blocks are simple. Now you shouldn’t have a problem answering
+questions such as:</p>
+<ol>
+<li>How are Git commit hashes generated? Why does rebasing produce different
+commit hashes?</li>
+<li>Can a remote-tracking branch update without your local branch updating?</li>
+<li>Which data structure represents the repository? What are the node and edge
+types in this DAG, and how do they relate?</li>
+</ol>
+<p>In the next articles, I plan to cover more advanced concepts, such as Git
+object storage, garbage collection, and how the default merge strategy works.</p>
+<p>If you have a little more time and want to keep going, I recommend a few
+resources:</p>
+<ul>
+<li><a href="https://git-scm.com/book/en/v2">Pro Git Book</a>: very practical, but it
+doesn’t lack depth; look at the <strong><a href="https://git-scm.com/book/en/v2/Git-Internals-Plumbing-and-Porcelain">Git Internals</a></strong>
+section.</li>
+<li><a href="https://eagain.net/articles/git-for-computer-scientists/">Git for Computer Scientists</a> by
+Tommi Virtanen; short and sweet: this is where I got the DAG analogy.</li>
+</ul>
+
+
+  
+    <div class="terminal-nav">
+      <div class="back-nav">
+        <a href="../" class="back-link">../</a>
+      </div>
+    </div>
+  
+
+  </main>
+  <footer>
+    
+  </footer>
+</body>
+</html>
