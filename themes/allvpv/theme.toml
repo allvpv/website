@@ -1,0 +1,9 @@
+name = "allvpv"
+# based on shibui theme
+# shibui: "https://github.com/ntk148v/shibui"
+license = "MIT"
+
+[module]
+[module.hugoVersion]
+extended = true
+min = "0.93.0"

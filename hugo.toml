@@ -1,7 +1,7 @@
 baseURL = 'https://example.org/'
 languageCode = 'en-us'
 title = "allvpv's space 🛖"
-theme = 'shibui'
+theme = 'allvpv'
 
 [params]
   author = "allvpv <Przemyslaw Kusiak>"
