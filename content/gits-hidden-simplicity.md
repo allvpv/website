@@ -1,8 +1,8 @@
 +++
 date = '2025-09-13'
 draft = false
-title = "Git's hidden simplicity"
-subtitle = "What's behind every commit"
+title = "Git’s hidden simplicity"
+subtitle = "What’s behind every commit"
 toc = false
 +++
 ![Ambient terminal displaying the first commit of Git and a Git logo](../assets/git_initial_rev.jpg)
