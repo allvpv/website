@@ -1,7 +1,7 @@
 :root {
   /* Typography */
   --spacing-base: 1.3em;
-  --font-family-mono: "Iosevka Web";
+  --font-family-mono: "Iosevka Web", "Iosevka", "Iosevka Mono", "Iosevka Nerd Font Mono", "Fira Code", "SF Mono", "Roboto Mono", "Liberation Mono", Menlo, Consolas, monospace;
   --font-size-base: 1.3em;
   --font-size-small: 0.9em;
   --font-size-code: 0.90em;
