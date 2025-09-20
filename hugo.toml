@@ -6,13 +6,3 @@ theme = 'allvpv'
 [params]
   author = "allvpv <Przemyslaw Kusiak>"
   email = "mail@allvpv.org"
-
-[menu]
-  [[menu.main]]
-    name = "Posts"
-    url = "/"
-    weight = 1
-  [[menu.main]]
-    name = "About"
-    url = "/about/"
-    weight = 2

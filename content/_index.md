@@ -7,7 +7,7 @@ similar to [Julia Evans](https://jvns.ca/), that's not by accident: I love her
 blog and I am hevily inspired by it.
 
 Peace! [Leave me an email](mailto:mail@allvpv.org), if you want to! Sometimes,
-I post something on [BlueSky](bsky.app/profile/allvpv.org). And that's me:
+I post something on [BlueSky](https://bsky.app/profile/allvpv.org). And that's me:
 
 
 
