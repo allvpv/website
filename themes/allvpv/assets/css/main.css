@@ -9,6 +9,7 @@
   /* Spacing */
   --spacing-xs: calc(var(--spacing-base) * 0.25);
   --spacing-sm: calc(var(--spacing-base) * 0.5);
+  --spacing-ok: calc(var(--spacing-base) * 0.75);
   --spacing-md: var(--spacing-base);
   --spacing-lg: calc(var(--spacing-base) * 2);
 
@@ -118,7 +119,7 @@ body {
   grid-template-rows: auto 1fr auto;
   grid-template-columns: minmax(0, var(--container-width));
   justify-content: center;
-  padding: var(--spacing-sm);
+  padding: var(--spacing-ok);
   gap: var(--spacing-sm);
 }
 
