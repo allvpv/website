@@ -201,7 +201,6 @@ pre {
   word-wrap: break-word;
   font-family: var(--font-family-mono);
   font-size: var(--font-size-code);
-  line-height: 1.6;
   color: var(--color-text-code);
   overflow: scroll;
   display: block;
