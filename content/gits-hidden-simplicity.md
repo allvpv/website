@@ -72,8 +72,7 @@ It works. So simple. Now, let’s ponder what the `payload` contains:
    (seconds since the Unix epoch) and time zone; [in several scenarios it’s
    possible that the author is not the
    committer](https://stackoverflow.com/a/6755848).
-
-the commit message.
+4. the commit message.
 
 ## Aha!
 
