@@ -143,10 +143,10 @@ And if you think about it, you will notice that it is a…
 
 There are three types of nodes in this graph: commits, trees, and blobs. And four types of edges:
 
-- **commit → commit** – parent relationship; a commit has zero or more parents (usually one).
-- **commit → tree** – each commit points to exactly one tree (a snapshot of files and folders).
-- **tree → tree** – subdirectory relationship.
-- **tree → blob** – files contained in a directory.
+- **commit -> commit** – parent relationship; a commit has zero or more parents (usually one).
+- **commit -> tree** – each commit points to exactly one tree (a snapshot of files and folders).
+- **tree -> tree** – subdirectory relationship.
+- **tree -> blob** – files contained in a directory.
 
 Interestingly, the graph fragment reachable from a **tree** node doesn’t have
 to form a strict tree. For example, a single blob can be referenced by multiple
