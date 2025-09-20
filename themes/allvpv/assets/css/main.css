@@ -468,15 +468,6 @@ blockquote > :last-child {
   }
 }
 
-@media (max-device-width: 600px) {
-  body {
-    padding-top: 2em;
-  }
-
-}
-
-
-
 /* https://github.com/argyleink/gui-challenges/tree/main/theme-switch */
 
 :where(html) {
