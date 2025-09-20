@@ -1,6 +1,6 @@
 +++
 date = '2025-09-13'
-draft = true
+draft = false
 title = "Git's hidden simplicity"
 subtitle = "What's behind every commit"
 toc = false

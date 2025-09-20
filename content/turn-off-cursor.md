@@ -1,6 +1,6 @@
 +++
 date = '2025-08-30'
-draft = true
+draft = false
 title = 'Turn off Cursor, turn on your mind'
 subtitle = 'A case against agentic coding'
 toc = false
