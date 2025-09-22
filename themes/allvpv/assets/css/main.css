@@ -36,7 +36,7 @@
 }
 :root[data-theme="dark"]  {
   --color-bg-primary: hsl(236, 30%, 8%);
-  --color-bg-secondary: hsl(236, 40%, 15%);
+  --color-bg-secondary: hsl(236, 40%, 20%);
   --color-text-primary: hsl(32, 100%, 66.5%);
   --color-text-muted: hsl(32, 100%, 81.5%);
   --color-text-less-muted: hsl(32, 100%, 83.5%);
