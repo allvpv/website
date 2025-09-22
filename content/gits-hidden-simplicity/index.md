@@ -5,7 +5,7 @@ title = "Git’s hidden simplicity"
 subtitle = "What’s behind every commit"
 toc = false
 +++
-![Ambient terminal displaying the first commit of Git and a Git logo](../assets/git_initial_rev.jpg)
+![Ambient terminal displaying the first commit of Git and a Git logo](git_initial_rev.jpg)
 
 Many programmers would admit this: our knowledge of Git tends to be pretty…
 superficial. “Oops, what happened? Screw that, I’ll cherry pick my commits and

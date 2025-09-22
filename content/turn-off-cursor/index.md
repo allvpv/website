@@ -5,7 +5,7 @@ title = 'Turn off Cursor, turn on your mind'
 subtitle = 'A case against agentic coding'
 toc = false
 +++
-![Photo of VT320 terminal in ambient surroundings](../assets/vt320.jpg)
+![Photo of VT320 terminal in ambient surroundings](vt320.jpg)
 
 ## Two approaches to using AI
 
@@ -36,7 +36,7 @@ shouldn't let ourselves get lazy – even for promised efficiency gains**.
 
 ## Not only coding
 
-![Prompt: asking AI to rephrase the essay](../assets/prompt.png)
+![Prompt: asking AI to rephrase the essay](prompt.png)
 
 There’s a spectrum when it comes to outsourcing tasks to AI. For example, I could:
 
