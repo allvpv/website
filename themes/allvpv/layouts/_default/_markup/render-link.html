@@ -1,0 +1,7 @@
+{{- $u := .Destination | safeURL -}}
+<a href="{{ $u }}"
+  {{- if or (strings.HasSuffix $u ".xml") (strings.HasSuffix $u "/index.xml") -}}
+    type="application/rss+xml"
+  {{- end -}}
+>{{ .Text | safeHTML }}</a>
+{{- /* chomp trailing newline */ -}}
