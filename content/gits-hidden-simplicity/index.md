@@ -187,6 +187,8 @@ questions such as:
 In the next articles, I plan to cover more advanced concepts, such as Git
 object storage, garbage collection, and how the default merge strategy works.
 
+{{<subscribe>}}
+
 If you have a little more time and want to keep going, I recommend a few
 resources:
 

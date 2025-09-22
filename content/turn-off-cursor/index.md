@@ -54,6 +54,8 @@ I believe the same logic holds for coding. **Because coding is an ongoing
 learning process, even those in senior positions shouldn’t think they have it
 all figured out**. Let me elucidate this point.
 
+{{<subscribe>}}
+
 ## What makes you a faster, more skilled programmer?
 
 Let's start with something we can probably all agree on.
@@ -133,6 +135,8 @@ over coding entirely, laying us all off.
 But until then, I won't entrust them with my skills, my learning, or my
 responsibilities. The moment they break down, I have to take over – so I need
 to know exactly what's going on in the system.
+
+{{<subscribe>}}
 
 At the same time, I’m all for using AI to learn, explore alternatives, and gain
 efficiency by means other than outsourcing coding to AI.

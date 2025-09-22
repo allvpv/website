@@ -123,6 +123,16 @@ body {
   gap: var(--spacing-sm);
 }
 
+.please-subscribe {
+  justify-content: center;
+  margin: var(--spacing-sm) var(--spacing-base);
+  /* border: 1px solid hsl(32, 100%, 66.5%); */
+  /* border-radius: var(--pre-border-radius); */
+  /* only top and bottom border */
+  border-top: 1px solid var(--color-text-more-muted);
+  border-bottom: 1px solid var(--color-text-more-muted);
+}
+
 a {
   text-decoration: none;
   border-bottom: 1px dotted;
