@@ -31,7 +31,7 @@
     {{ template "breadcrumbnav" (dict "p1" .p1.Parent) }}
   {{ else }}
     <li>
-      <a href="{{ .p1.RelPermalink }}">{{ if .p1.IsHome }}{{ .p1.Site.Title }}{{ else }}{{ .p1.Title }}{{ end }}</a>
+      <a href="{{ .p1.RelPermalink }}">{{ if .p1.IsHome }}{{ .p1.Site.Params.TitleWithEmoji }}{{ else }}{{ .p1.Title }}{{ end }}</a>
     </li>
   {{ end }}
 {{ end }}

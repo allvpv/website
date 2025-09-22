@@ -1,16 +1,12 @@
 baseURL = 'https://allvpv.org/'
 languageCode = 'en-us'
-title = "allvpv’s space 🛖"
+title = "allvpv’s space"
 theme = 'allvpv'
 
 [params]
   author = "allvpv <Przemysław Kusiak>"
   email = "mail@allvpv.org"
-
-[markup]
-  [markup.goldmark]
-    [markup.goldmark.renderer]
-      unsafe = true
+  titleWithEmoji = "allvpv’s space 🛖"
 
 [outputs]
   home = ["rss", "html"]
