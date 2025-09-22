@@ -9,6 +9,4 @@ blog and I am hevily inspired by it.
 Peace! [Leave me an email](mailto:mail@allvpv.org), if you want to! Sometimes,
 I post something on [BlueSky](https://bsky.app/profile/allvpv.org). And that's me:
 
-
-
-
+![avatar](assets/avatar.jpg)

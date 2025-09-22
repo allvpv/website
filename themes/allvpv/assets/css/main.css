@@ -367,13 +367,6 @@ img {
   border-radius: var(--pre-border-radius);
 }
 
-img.avatar {
-  margin-top: 0;
-  margin-right: 1em;
-  float: left;
-  width: "30%";
-}
-
 figure {
   margin: var(--spacing-base) 0;
   text-align: center;
