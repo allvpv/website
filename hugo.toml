@@ -6,3 +6,16 @@ theme = 'allvpv'
 [params]
   author = "allvpv <Przemysław Kusiak>"
   email = "mail@allvpv.org"
+
+[markup]
+  [markup.goldmark]
+    [markup.goldmark.renderer]
+      unsafe = true
+
+[outputs]
+  home = ["rss", "html"]
+
+[outputFormats]
+  [outputFormats.rss]
+    mediatype = "application/rss"
+    baseName = "rss"
