@@ -20,12 +20,15 @@ Join me in exploring how environment variables really work on Linux.
 ## Where they come from?
 
 In Linux, a program must use `execve` syscall to execute another program. When
-typing `ls` in `bash`, as well as using `subpreocess.exec` in Python, or
+typing `ls` in `bash`, as well as using `subpreocess.run` in Python, or
 clicking the Browser icon from the Start Menu – it all comes down to the
 `execve`.
 
-And `execve` takes as argument an array of environment variables *for the
-executed program*.
+And `execve` takes three arguments: executable path, array of command line
+arguments, and array of environment variables. So, for `ls -lah` invocation in
+the terminal, the binary will be `/usr/bin/ls`, the array of arguments:
+`['/usr/bin/ls', '-lah']` (yes, the executable is usually the "zero" argument),
+and the array of environment variables. Let's talk about the last.
 
 The default convention is to pass all environment variables of the parent
 process. And that is what you expect: the variables are inherited from the
@@ -35,10 +38,10 @@ track of the `environment`.
 However, nothing prevents the parent process to pass completly different, or
 even empty, set of env vars in call to `execve`! And it makes sense sometimes.
 For example, the `login` executable, which is executed when you log into your
-system, clears the environment by default.
+system, clears and sets up the fresh environment.
 
 But by default, essentially all tooling passes the environment down: `bash`, as
-well as Python when you use `subprocess.exec`, or C library `execl` function,
+well as Python (when you use `subprocess.exec`), or C library `execl` function,
 etc.
 
 ## Where are they going?
@@ -46,13 +49,18 @@ etc.
 After running the new program, the kernel just dumps the variables into an
 array on the stack.
 
-This static array cannot be easily modified, for example, to extend it
-with one more variable. The layout in memory does not allow for that.
+This static array cannot be easily modified, for example, to extend it with one
+more variable. The layout in memory does not allow for that.
 
-And that's why the program has to copy thos variables to some modifiable data
-structure: so that you can adjust the environment while you are running the
-program: the default C library on Linux – `glibc` -  uses a dynamic array. 
-`bash` goes even further, and it stores the variables in a hash map. And so on. (python?)
+And that's why the program has to copy those variables to some modifiable data
+structure, so that you can adjust the environment while you are running the
+program:
+- `glibc` - the default C library on Linux – uses a dynamic array.
+- `bash` stores the variables in a hash map.
+- `Python` uses `os.environ`, but this is only a proxy to more low-level,
+  natively implemented `os.putenv` and `os.getenv` functions, which, in turn,
+  call the C library `putenv` and `getenv`, so the C library is responsible
+  for managing the “ground truth” state of environment variables.
 
 
 ## Liberal format
@@ -70,9 +78,19 @@ The usual entry is `NAME=VALUE`, but nothing prevents you to add
 
 And when you execute a child process, it will also retain this "broken" setup!
 
-However, if you then execute `bash` from the "broken" process, it will
-deduplicate the variables, taking into account the value of the latest, and get
-rid of the invalid entries.
+
+## The standard format
+
+So the kernel will happily accept any null-terminated string (of length...) as
+an environment variable.
+
+But the fact that you do something, does not mean that you should.
+
+For example, if you execute `bash` with this "broken" setup (duplicated names,
+invalid entries), it will deduplicate the variables, taking into account the
+value of the latest, and get rid of the invalid entries.
+
+There are standards that should be .
 
 
 ## How to properly get the current username in Bash script?
