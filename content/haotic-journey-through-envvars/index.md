@@ -1,18 +1,36 @@
 +++
 date = '2025-09-20'
 draft = true
-title = "Haotic journey through environment variables"
-subtitle = "Jump with me to the rabbit hole"
+title = "Environment variables"
 toc = false
 +++
+<!-- This is a draft. It should be ignored by Hugo, and not displayed on the website. -->
+<!-- This is a draft. It should be ignored by Hugo, and not displayed on the website. -->
+<!-- This is a draft. It should be ignored by Hugo, and not displayed on the website. -->
+<!-- This is a draft. It should be ignored by Hugo, and not displayed on the website. -->
+<!-- This is a draft. It should be ignored by Hugo, and not displayed on the website. -->
+<!-- This is a draft. It should be ignored by Hugo, and not displayed on the website. -->
+<!-- This is a draft. It should be ignored by Hugo, and not displayed on the website. -->
 
-DRAFT DRAFT DRAFT
+In software engineering, the new often meets the old, and some things never
+change for decades. Even though programming languages have rapidly evolved, the
+overall scaffolding that OS gives to running the processes has been pretty
+much the same since early days of Unix.
 
-It's interesting how often in software engineering, the new meets the old.
+In general, if you need to somehow parametrize your application at runtime by
+passing a couple of ad-hoc variables (without creating temporary files or using
+some custom IPC solution), forget about typing, namespaces, or any kind of
+modern interface.
 
-Even if you are working with the newest, shiniest front-end framework, you
-cannot deploy it without getting away without at least a couple of environment
-variables. And here, the entire ugly world of UNIX legacy comes into play.
+> You must use an *environment variable*.
+
+Even a novice programmer is supposed to know what it is. They saw it at some
+point, maybe during a local setup that required exporting the `SECRET_KEY`, or
+by changing some deployment configuration.
+
+So what really are those *environment variables*? Is it some kind of a special
+dict inside the operating system? If no, then who owns it and how do they
+propagate? And what can be stored inside it? What are the limitations?
 
 Join me in exploring how environment variables really work on Linux.
 
