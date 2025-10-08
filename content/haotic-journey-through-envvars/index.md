@@ -42,12 +42,12 @@ typing `ls` in `bash`, as well as using `subprocess.run` in Python, or clicking
 a program icon from the Start Menu, it all comes down to the `execve`.
 
 And `execve` takes three arguments:
-- executable path
+- the executable path
 - an array of command line arguments, and
 - an array of environment variables.
 
 So, for `ls -lah` invocation in the terminal:
-- the 1st argument will be `/usr/bin/ls`
+- the 1st argument will be `/usr/bin/ls`,
 - the 2nd argument will be the array of arguments: `['/usr/bin/ls', '-lah']`
   (the executable is usually the "zero" argument),
 - the 3rd argument will be the array of environment variables.
@@ -60,6 +60,11 @@ By default, however, all tooling passes the environment down: `bash`, as well
 as Python (when you use `subprocess.exec`), or C library `execl` function, etc.
 And this is what you expect to happen: the variables are inherited by the child
 process. That's the point – to keep track of the `environment`.
+
+> What tools do *not* explicitly pass the environment down?
+>
+> For example, the `login` executable, which is used when signing onto a
+> system, sets up a fresh environment for the child processes.
 
 
 ## Where are they going?
