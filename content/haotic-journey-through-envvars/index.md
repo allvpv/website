@@ -15,7 +15,7 @@ toc = false
 In software engineering, the new often meets the old, and some things never
 change for decades. Even though programming languages have rapidly evolved, the
 overall scaffolding that OS gives to running the processes has been pretty
-much the same since early days of Unix.
+much the same since the days of Unix.
 
 In general, if you need to somehow parametrize your application at runtime by
 passing a couple of ad-hoc variables (without creating temporary files or using
@@ -26,69 +26,76 @@ modern interface.
 
 Even a novice programmer is supposed to know what it is. They saw it at some
 point, maybe during a local setup that required exporting the `SECRET_KEY`, or
-by changing some deployment configuration.
+when changing some deployment configuration.
 
 So what really are those *environment variables*? Is it some kind of a special
-dict inside the operating system? If no, then who owns it and how do they
-propagate? And what can be stored inside it? What are the limitations?
+dict inside the operating system? If no, then who owns them and how do they
+propagate? And what can be stored inside them? What are the limitations?
 
 Join me in exploring how environment variables really work on Linux.
 
 
-## Where they come from?
+## Where do they come from?
 
 In Linux, a program must use `execve` syscall to execute another program. When
-typing `ls` in `bash`, as well as using `subpreocess.run` in Python, or
-clicking the Browser icon from the Start Menu – it all comes down to the
-`execve`.
+typing `ls` in `bash`, as well as using `subprocess.run` in Python, or clicking
+a program icon from the Start Menu, it all comes down to the `execve`.
 
-And `execve` takes three arguments: executable path, array of command line
-arguments, and array of environment variables. So, for `ls -lah` invocation in
-the terminal, the binary will be `/usr/bin/ls`, the array of arguments:
-`['/usr/bin/ls', '-lah']` (yes, the executable is usually the "zero" argument),
-and the array of environment variables. Let's talk about the last.
+And `execve` takes three arguments:
+- executable path
+- an array of command line arguments, and
+- an array of environment variables.
+
+So, for `ls -lah` invocation in the terminal:
+- the 1st argument will be `/usr/bin/ls`
+- the 2nd argument will be the array of arguments: `['/usr/bin/ls', '-lah']`
+  (the executable is usually the "zero" argument),
+- the 3rd argument will be the array of environment variables.
 
 The default convention is to pass all environment variables of the parent
-process. And that is what you expect: the variables are inherited from the
-parent process, by the child process. That's the point, after all – to keep
-track of the `environment`.
+process. However, nothing prevents the parent process from passing a completely
+different (or even empty) set of env vars when using the `execve` system call!
 
-However, nothing prevents the parent process to pass completly different, or
-even empty, set of env vars in call to `execve`! And it makes sense sometimes.
-For example, the `login` executable, which is executed when you log into your
-system, clears and sets up the fresh environment.
+By default, however, all tooling passes the environment down: `bash`, as well
+as Python (when you use `subprocess.exec`), or C library `execl` function, etc.
+And this is what you expect to happen: the variables are inherited by the child
+process. That's the point – to keep track of the `environment`.
 
-But by default, essentially all tooling passes the environment down: `bash`, as
-well as Python (when you use `subprocess.exec`), or C library `execl` function,
-etc.
 
 ## Where are they going?
 
-After running the new program, the kernel just dumps the variables into an
-array on the stack.
-
-This static array cannot be easily modified, for example, to extend it with one
-more variable. The layout in memory does not allow for that.
+After running the new program, the kernel just dumps the variables to an array
+on the stack. This static array cannot be easily modified. It cannot be
+extended with one more variable. The layout in memory simply does not allow for
+that.
 
 And that's why the program has to copy those variables to some modifiable data
-structure, so that you can adjust the environment while you are running the
-program:
-- `glibc` - the default C library on Linux – uses a dynamic array.
+structure. That allows to adjust the environment while you are running the
+program.
+
+Let's explore what underlying structure is used for storing the environment
+variables in some most essential programming languages/frameworks:
 - `bash` stores the variables in a hash map.
-- `Python` uses `os.environ`, but this is only a proxy to more low-level,
-  natively implemented `os.putenv` and `os.getenv` functions, which, in turn,
-  call the C library `putenv` and `getenv`, so the C library is responsible
-  for managing the “ground truth” state of environment variables.
+- `glibc` - the default C library on Linux – uses a dynamic array, which
+  can be managed by `putenv` and `getenv` functions.
+- `Python` uses `os.environ` dictionary, but this is only a proxy to more
+  low-level, natively implemented `os.putenv` and `os.getenv` functions, which,
+  in turn, call the C library `putenv` and `getenv`. So the C library is
+  responsible for managing the “ground truth” state of environment variables.
+
+  The propagation is one-directional. Modifying `os.environ` will call
+  `os.putenv`, but not the other way around. Call `os.putenv`, and `os.environ`
+  won't be updated.
 
 
 ## Liberal format
 
-The Linux kernel, as well as the standard C library, is very liberal when it
-comes to the format of environment variables.
+The Linux kernel, as well as the most popular standard C library on Linux -
+`glibc` – is very liberal when it comes to the format of environment variables.
 
-For example, your C program (if it uses `glibc` standard library) can
-manipulate environment – the global `environ` array – in such a way that you'll
-create several environment variables with the same name but different value!
+For example, your C program (if it uses `glibc`) can manipulate environment –
+the global `environ` array – in such a way that you'll create several
+environment variables with the same name but different value!
 
 You don't even need the equal sign, separating the name from the value!
 The usual entry is `NAME=VALUE`, but nothing prevents you to add
@@ -111,34 +118,34 @@ value of the latest, and get rid of the invalid entries.
 There are standards that should be .
 
 
-## How to properly get the current username in Bash script?
-
-Recently I had to review code with this one peculiar line:
-
-    EVALUATOR_NAME="${USER:-$(whoami)}"
-
-My first question was: isn't it redundant? Why cannot we stick to either
-`${USER}` or `$(whoami)`? If you struggle to understand this syntax let me
-unpack it: `${USER}` resolves to the value of the environment variable called
-`USER`, which – surprise! – should be set to your username. And `whoami` is a
-binary that, when executed, that prints the current username. `$(...)` captures
-command standard output, so `echo $(whomai)` is the same as `whoami`
-
-And `${VAR_NAME:-fallback_value}` is another bashism. If `VAR_NAME` is set and
-non-empty, that the value of `VAR_NAME` is used here, otherwise it fallbacks to
-`fallback_value`.
-
-So why cannot we stick to either `${USER}` or `$(whoami)`? If in your Linux
-terminal you'll type:
-
-    env
-
-then you'll see all environment variables listed. But no one is preventing you
-to write:
-
-    unset USER
-
-and `USER` is gone.
+<!-- ## How to properly get the current username in Bash script? -->
+<!---->
+<!-- Recently I had to review code with this one peculiar line: -->
+<!---->
+<!--     EVALUATOR_NAME="${USER:-$(whoami)}" -->
+<!---->
+<!-- My first question was: isn't it redundant? Why cannot we stick to either -->
+<!-- `${USER}` or `$(whoami)`? If you struggle to understand this syntax let me -->
+<!-- unpack it: `${USER}` resolves to the value of the environment variable called -->
+<!-- `USER`, which – surprise! – should be set to your username. And `whoami` is a -->
+<!-- binary that, when executed, that prints the current username. `$(...)` captures -->
+<!-- command standard output, so `echo $(whomai)` is the same as `whoami` -->
+<!---->
+<!-- And `${VAR_NAME:-fallback_value}` is another bashism. If `VAR_NAME` is set and -->
+<!-- non-empty, that the value of `VAR_NAME` is used here, otherwise it fallbacks to -->
+<!-- `fallback_value`. -->
+<!---->
+<!-- So why cannot we stick to either `${USER}` or `$(whoami)`? If in your Linux -->
+<!-- terminal you'll type: -->
+<!---->
+<!--     env -->
+<!---->
+<!-- then you'll see all environment variables listed. But no one is preventing you -->
+<!-- to write: -->
+<!---->
+<!--     unset USER -->
+<!---->
+<!-- and `USER` is gone. -->
 
 
 <!-- ## Another options -->
