@@ -80,12 +80,12 @@ program.
 
 Let's explore what underlying structure is used for storing the environment
 variables in some most essential programming languages/frameworks.
-Out of curiosity, I've checked in the source code of:
+Out of curiosity, I've checked the source code of:
 - `bash` - it stores the variables in a hash map;
-- `glibc` (the default C library on Linux) – uses a dynamic array, which
-  can be managed by `putenv` and `getenv` library functions.
+- `glibc` (the default C library on Linux) – uses a dynamic array; this
+  array can be managed by `putenv` and `getenv` library functions.
 - `Python` – uses `os.environ` dictionary, but this is only a proxy to more
-  low-level, natively implemented `os.putenv` and `os.getenv` functions, which,
+  low-level, natively implemented `os.putenv` and `os.getenv` functions. They,
   in turn, call `putenv` and `getenv` from the C library. So the C library is
   responsible for managing the “ground truth” state of environment variables.
 
@@ -125,7 +125,7 @@ variable” definition. Just adhere to the following limit:
 ## The standard format
 
 
-But the fact that you do something, does not mean that you should.
+But the fact that you can do something, does not mean that you should.
 
 For example, if you execute `bash` with this "broken" setup – containing
 duplicated names and invalid entries without the `=` separator – it will ignore
