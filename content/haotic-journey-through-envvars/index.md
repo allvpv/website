@@ -79,13 +79,14 @@ structure. That allows to adjust the environment while you are running the
 program.
 
 Let's explore what underlying structure is used for storing the environment
-variables in some most essential programming languages/frameworks:
-- `bash` stores the variables in a hash map.
-- `glibc` - the default C library on Linux – uses a dynamic array, which
-  can be managed by `putenv` and `getenv` functions.
-- `Python` uses `os.environ` dictionary, but this is only a proxy to more
+variables in some most essential programming languages/frameworks.
+Out of curiosity, I've checked in the source code of:
+- `bash` - it stores the variables in a hash map;
+- `glibc` (the default C library on Linux) – uses a dynamic array, which
+  can be managed by `putenv` and `getenv` library functions.
+- `Python` – uses `os.environ` dictionary, but this is only a proxy to more
   low-level, natively implemented `os.putenv` and `os.getenv` functions, which,
-  in turn, call the C library `putenv` and `getenv`. So the C library is
+  in turn, call `putenv` and `getenv` from the C library. So the C library is
   responsible for managing the “ground truth” state of environment variables.
 
   The propagation is one-directional. Modifying `os.environ` will call
@@ -102,23 +103,34 @@ For example, your C program (if it uses `glibc`) can manipulate environment –
 the global `environ` array – in such a way that you'll create several
 environment variables with the same name but different value!
 
-You don't even need the equal sign, separating the name from the value!
-The usual entry is `NAME=VALUE`, but nothing prevents you to add
-`NONSENSE_WITH_EMOJI 😀`
-
 And when you execute a child process, it will also retain this "broken" setup!
+
+You don't even need the equal sign, separating the name from the value! The
+usual entry is `NAME=VALUE` (with the first equal sign separating the name from
+the value) but nothing prevents you to add `NONSENSE_WITH_EMOJI 😀` to this
+array. (Is it even a *variable* then, without a proper name and a value)?
+
+So the kernel will happily accept any null-terminated string as an “environment
+variable” definition. Just adhere to the following limit:
+
+- Size of a single env var (name + equal sign + value) [cannot be more then
+  `PAGE_SIZE * 32`](https://elixir.bootlin.com/linux/v2.6.24/source/include/linux/binfmts.h#L14):
+  that is 128Kb on a typical x64 Intel CPU.
+
+- Limit on the total size of the command-line argument (argv) and environment
+  (envp) strings. The calculation is a bit more complicated (see `execve(2)`
+  man page). On my machine, it's 2MB.
 
 
 ## The standard format
 
-So the kernel will happily accept any null-terminated string (of length...) as
-an environment variable.
 
 But the fact that you do something, does not mean that you should.
 
-For example, if you execute `bash` with this "broken" setup (duplicated names,
-invalid entries), it will deduplicate the variables, taking into account the
-value of the latest, and get rid of the invalid entries.
+For example, if you execute `bash` with this "broken" setup – containing
+duplicated names and invalid entries without the `=` separator – it will ignore
+invalid entries and deduplicate the variables, taking into account the value of
+the latest.
 
 There are standards that should be .
 
