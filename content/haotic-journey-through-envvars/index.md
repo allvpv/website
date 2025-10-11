@@ -1,14 +1,15 @@
 +++
-date = '2025-09-20'
+date = '2025-10-12'
 draft = true
 title = "Environment variables are a legacy mess: Let's dive deep into them"
 toc = false
 +++
 ![Green terminal showing Nushell in action](nushell.jpg)
 
-In software engineering, the new often meets the old, and some things never
+In software engineering, the new often meets the old, and some things do not
 change for decades. Even though programming languages have rapidly evolved, the
-scaffolding that OSes give for running processes hasn’t changed much since Unix.
+scaffolding that OS gives for running new processes hasn’t changed much since
+Unix.
 
 In general, if you need to parametrize your application at runtime by passing a
 few ad-hoc variables (without temporary files or a custom solution involving IPC
@@ -16,19 +17,18 @@ or networking), you're doomed to a pretty awkward, outdated interface:
 
 ## Environment variables.
 
+`export SECRET_API_KEY=2u845102348u234`
+
 There are no namespaces for them, no types. Just a flat, embarrassingly global
 dictionary of strings.
 
-**And they are everywhere.** Even programmers encounter them: perhaps when
-exporting the `SECRET_API_KEY` during setup, or while building a Docker image.
-
 But what exactly are these envvars? Are they some kind of special map inside
-the operating system? If not, who owns them and how do they propagate?
+the OS? If not, who owns them and how do they propagate?
 
 
 ## Where do they come from?
 
-In a nutshell: they're passed from parent to child.
+In a nutshell: they're passed from parent to child
 
 ```
     841 ?        00:00:00 sshd
@@ -45,8 +45,6 @@ Whether you type `ls` in Bash, call `subprocess.run` in Python, or launch a
 code editor, it ultimately comes down to `execve`, preceded by a `fork`. The
 `exec*` family of C functions also relies on `execve`.
 
-This syscall takes three arguments:
-
 ```c
 SYSCALL_DEFINE3(execve,
 		const char __user *, filename,
@@ -54,13 +52,13 @@ SYSCALL_DEFINE3(execve,
 		const char __user *const __user *, envp)
 ```
 
-For example, an invocation of `ls -lah` in the terminal produces the following
-arguments:
-1. `/usr/bin/ls`: the executable path,
-2. `['/usr/bin/ls', '-lah']`: the array of command line arguments – the
+This system call takes three arguments: `filename`, `argv`, `envp`.
+For example, for an `ls -lah` invocation:
+1. `/usr/bin/ls` is the `filename` (the executable path),
+2. `['/usr/bin/ls', '-lah']` is the `argv` array of command line arguments – the
    implicit first ("zero") argument is usually the executable name,
-3. `['PATH=/bin:/usr/bin', 'USER=allvpv']`: the array of envvars (typically
-   much longer).
+3. `['PATH=/bin:/usr/bin', 'USER=allvpv']` is the `envp` array of envvars
+   (typically much longer).
 
 By default, all envvars are passed from the parent to the child. However,
 nothing prevents a parent process from passing a completely different or even
@@ -68,8 +66,8 @@ empty environment when calling `execve`! In practice, most tooling passes the
 environment down: Bash, Python’s `subprocess.exec`, the C library `execl`, and
 so on.
 
-This is what you expect – variables are inherited by child processes. That’s
-the point – to track the environment.
+And this is what you expect – variables are inherited by child processes.
+That’s the point – to track the environment.
 
 > Which tools do *not* pass the parent's environment?
 >
@@ -98,8 +96,8 @@ Here is a hex view:
 
 This static layout can’t easily be modified or extended; the program must copy
 those variables into its own data structure. Let’s look at how Bash, C, and
-Python store envvars internally. I analyzed their source code and came up with
-a summary.
+Python store envvars internally. I analyzed their source code and here is a
+summary.
 
 ### Bash
 
@@ -138,13 +136,13 @@ to the child.
 
 `glibc` exposes a dynamic `environ` array, managed via `putenv` and `getenv`
 library functions. It uses an array, so the time complexity of `getenv` and
-`putenv` is *linear* with respect to the number of envvars. Remember – envvars
-are not a high-performance dictionary and you should not abuse them.
+`putenv` is *linear* in the number of envvars. Remember – envvars are not a
+high-performance dictionary and you should not abuse them.
 
 ### Python
 
-Python is an interesting case: it couples its environment to the C library,
-which may lead to some unexpected problems.
+Python couples its environment to the C library, which can cause surprising
+inconsistencies.
 
 If you've programmed some Python, you've probably used the `os.environ`
 dictionary. On startup, `os.environ` is built from the C library's `environ`
@@ -241,8 +239,7 @@ But this is seriously **NOT**
 
 Yes, POSIX-specified utilities use uppercase envvars, but that's not
 *prescriptive* for your programs. Quite the contrary: you're *encouraged* to
-use lowercase for your envvars so they don’t collide with the standard "system"
-tools.
+use lowercase for your envvars so they don’t collide with the standard tools.
 
 The only strict rule is that a variable name cannot contain an equals sign.
 POSIX requires compliant applications to preserve all variables that conform to
