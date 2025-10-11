@@ -15,3 +15,7 @@ theme = 'allvpv'
   [outputFormats.rss]
     mediatype = "application/rss"
     baseName = "rss"
+
+[markup]
+  [markup.highlight]
+    noClasses = false

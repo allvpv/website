@@ -1,9 +1,10 @@
 +++
 date = '2025-09-20'
 draft = true
-title = "Environment variables: a deep dive"
+title = "Environment variables are a legacy mess"
 toc = false
 +++
+![Green terminal displaying the Nushell in action](nushell.jpg)
 
 <!-- This is a draft. It should be ignored by Hugo, and not displayed on the website. -->
 <!-- This is a draft. It should be ignored by Hugo, and not displayed on the website. -->
@@ -20,46 +21,58 @@ much the same since the days of Unix.
 
 If you need to somehow parametrize your application at runtime by passing a
 couple of ad-hoc variables (without creating temporary files or using some
-custom solution involving IPC), you need to use pretty awkward and outdated
-interface:
+custom solution involving IPC), you are doomed to use pretty awkward and
+outdated interface:
 
-## *environment variables*
-
-I will call them envvars through the rest of the post for brevity.
-
-Even a novice programmer is supposed to know what it is. They saw it at some
-point, maybe during a local setup that required exporting the `SECRET_KEY`, or
-when changing some deployment configuration.
+## Environment variables (envvars).
 
 There is no namespace to it, no types. Just a flat, embarassingly global
 dictionary of strings.
 
-But what really are those envvars? Is it some kind of a special dictionary or
-map inside the operating system? If no, then who owns them and how do they
-propagate? And what can be stored inside them?
+### And they are everywhere.
 
-Join me in exploring how envvars really work. On Linux, and in the shell.
+Even a novice programmer is supposed to know them. (They saw it at some point,
+maybe during a local setup that required exporting the `SECRET_API_KEY`, or
+while building a Docker image).
+
+But what really are those envvars? Is it some kind of a special map inside the
+operating system? If no, then who owns them and how do they propagate? And what
+can be stored inside them?
 
 
 ## Where do they come from?
 
+In a nutshell: They are passed from parent to child.
+
+```
+    841 ?        00:00:00 sshd
+   1520 ?        00:00:00  \_ sshd-session
+   1616 ?        00:00:00      \_ sshd-session
+   5521 pts/0    00:00:00          \_ bash
+   5545 pts/0    00:00:00              \_ nu
+   5549 pts/0    00:00:00                  \_ bash
+   5560 pts/0    00:00:00                      \_ ps
+```
+
 In Linux, a program must use `execve` syscall to execute another program. When
 typing `ls` in `bash`, as well as using `subprocess.run` in Python, or, at a
-higher level, running your code editor or web browser -- it all comes down to
-`execve`, preceeded by `fork`. (The familiy of `exec*` C functions also uses
-`execve` underneath).
+higher level, launching the code editor or web browser -- it all comes down to
+`execve`, preceeded by `fork`. The familiy of `exec*` C functions also uses
+`execve` underneath. And `execve` takes three arguments:
 
-And `execve` takes three arguments:
-- the executable path
-- an array of command line arguments, and
-- an array of environment variables.
+```c
+SYSCALL_DEFINE3(execve,
+		const char __user *, filename,
+		const char __user *const __user *, argv,
+		const char __user *const __user *, envp)
+```
 
 So, for `ls -lah` invocation in the terminal:
-- the 1st argument will be `/usr/bin/ls`,
-- the 2nd argument will be `['/usr/bin/ls', '-lah']`
-  (the executable is usually the "zero" argument),
-- and the 3rd argument will be, for example `['PATH=/usr/bin:/bin',
-  'USER=allvpv']` (much longer in real life).
+- the 1st argument will be `/usr/bin/ls`, the executable path,
+- the 2nd argument will be `['/usr/bin/ls', '-lah']`, the array of command line
+  arguments (the executable is usually the "zero" argument),
+- the 3rd argument will be, for example `['PATH=/bin', 'USER=allvpv']`: the
+  array of envvars, much longer in real life.
 
 The default convention is to pass all envvars from the parent process to the
 child process. However, nothing prevents the parent process from passing a
@@ -79,9 +92,25 @@ processes. That's the point – to keep track of the *environment*.
 
 ## Where are they going?
 
-After running the new program, the kernel just dumps the variables to an
-**array on the stack**. This static array cannot be easily modified. So the
-program has to copy those variables to some modifiable data structure.
+After running the new program, the kernel just dumps the variables to the
+memory on stack. It's just a sequence of null-terminated envvar definitions (if
+you don't have a background in C, think of it as one big immutable `string`):
+
+    00000000: 484f 4d45 3d2f 0069 6e69 743d 2f73 6269  HOME=/ init=/sbi
+    00000010: 6e2f 696e 6974 004e 4554 574f 524b 5f53  n/init NETWORK_S
+    00000020: 4b49 505f 454e 534c 4156 4544 3d00 5445  KIP_ENSLAVED= TE
+    00000030: 524d 3d6c 696e 7578 0042 4f4f 545f 494d  RM=linux BOOT_IM
+    00000040: 4147 453d 2f76 6d6c 696e 757a 2d36 2e31  AGE=/vmlinuz-6.1
+    00000050: 342e 302d 3333 2d67 656e 6572 6963 0064  4.0-33-generic.d
+    00000060: 726f 705f 6361 7073 3d00 5041 5448 3d2f  rop_caps= PATH=/
+    00000070: 7573 722f 6c6f 6361 6c2f 7362 696e 3a2f  usr/local/sbin:/
+    00000080: 7573 722f 6c6f 6361 6c2f 6269 6e3a 2f75  usr/local/bin:/u
+    00000090: 7372 2f73 6269 6e3a 2f75 7372 2f62 696e  sr/sbin:/usr/bin
+    000000a0: 3a2f 7362 696e 3a2f 6269 6e00 5057 443d  :/sbin:/bin PWD=
+    000000b0: 2f00 726f 6f74 6d6e 743d 2f72 6f6f 7400  / rootmnt=/root
+
+This static layout cannot be easily modified or extended: the program has to
+copy those variables into some internal data structure.
 
 Let's explore what underlying structure is used for storing the envvars in some
 most essential programming tools/languages/frameworks. Out of curiosity, I've
@@ -105,6 +134,18 @@ environmental, and copies them into an array passed to the child process.
 > variable. (That is, it will be passed to them as envvar). And when the
 > function exits, the variable is, of course, dropped.
 >
+> ```
+> function localyScoped() {
+>     local PATH="$PATH:/opt/secret/bin"
+>     export PATH
+>     env           # <- sees the PATH with /opt/scecret/bin
+> }
+>
+>
+> localyScoped
+> env               # <- sees the PATH without modification
+> ```
+>
 > I would never have learned this without diving into the source code of
 > `bash`. My intuitive (wrong) assumption was that `export` *automatically
 > makes the variable global*, like `declare -g`! Super interesting stuff.
@@ -112,24 +153,32 @@ environmental, and copies them into an array passed to the child process.
 ### The default C library on Linux: `glibc`
 
 `glibc` creates a dynamic `environ` array; this array can be managed by
-`putenv` and `getenv` library functions. Each `getenv` or `putenv` invocation
-is O(n) – the array needs to be traversed each time – but `n` is usually small.
+`putenv` and `getenv` library functions.
+
+So the time complexity of `getenv` and `putenv` is *linear* regarding the
+number of envvars. Remember – envvars are not a high-performance dictionary and
+you should not abuse them.
 
 ### Python
 
 Python is an interesting case: it tightly couples it's environment to the C
-library.
+library, which may lead to some unexpected problems.
 
-On startup, the `os.environ` dictionary is built from the `environ` array which
-is mentioned above. But this dictionary is **NOT** the “ground truth” of
-environment variables for the child processes.
+If you programmed some Python, you've probably encountered the `os.environ`
+dictionary.
+On startup, the `os.environ` dictionary is built from the C library `environ`
+array which is mentioned above.
 
-Rather, each change to `os.environ` calls the low-level, natively implemented
-`os.putenv` function, which in turn, calls `putenv` from the C library.
+But the dictionary values are **NOT** the “ground truth” of environment
+variables for the child processes. Rather, each change to `os.environ` calls
+the low-level, natively implemented `os.putenv` function, which in turn, calls
+`putenv` from the C library.
 
-Note that the propagation is one-directional: modifying `os.environ` will call
-`os.putenv`, but not the other way around. Call `os.putenv`, and `os.environ`
-won't be updated.
+> Note that the propagation is one-directional: modifying `os.environ` will call
+> `os.putenv`, but not the other way around. Call `os.putenv`, and `os.environ`
+> won't be updated.
+
+
 
 
 ## Liberal format
@@ -139,7 +188,7 @@ The Linux kernel, as well as the most popular standard C library on Linux -
 
 For example, your C program (if it uses `glibc`) can manipulate environment –
 the global `environ` array – in such a way that you'll create several
-environment variables with the same name but different value. And when you
+environment variables with the same name but of a different value. And when you
 execute a child process, it will also retain this "broken" setup.
 
 You don't even need the equal sign, separating the name from the value! The
@@ -148,13 +197,13 @@ usual entry is `NAME=VALUE`  but nothing prevents you to add
 a proper name and a value)?
 
 So the kernel will happily accept any null-terminated string as an “environment
-variable” definition. It just imposes a *size* limit:
+variable” definition. It just imposes a *size* limitation:
 
 - **Single variable**: 128Kb on a typical x64 Intel CPU. This is for the whole
   definition – name + equal sign + value. It's calculated as [`PAGE_SIZE *
   32`](https://elixir.bootlin.com/linux/v2.6.24/source/include/linux/binfmts.h#L14).
   No modern hardware uses pages smaller than 4Kb, so you can treat it as a lower bound,
-  unless you need to deal with legacy embedded systems.
+  unless you need to deal with some legacy embedded systems.
 
 - **Total**: 2MB on the *typical* machine. This limit is shared by envvars and
   the command line arguments. The calculation is a bit more complicated (see
@@ -162,7 +211,9 @@ variable” definition. It just imposes a *size* limit:
 
         max(32 * PAGE_SIZE,  min(MAX_STACK_SIZE / 4,  6 Mb))
 
-  On a typical system, the limiting factor is the `MAX_STACK_SIZE`.
+  On a typical system, the limiting factor is the `MAX_STACK_SIZE`. Remember,
+  initially the envvars are stored on the stack! To prevent unpredictable
+  crashes, the system allows only 1/4 of stack for the envvars.
 
 
 ## Quirks
@@ -170,15 +221,15 @@ variable” definition. It just imposes a *size* limit:
 But the fact that you can do something, does not mean that you should.
 
 For example, if you execute `bash` with the "broken" setup – containing
-duplicated names and entries without the `=` separator – it will ignore
-deduplicate the variables and get rid of the nonsense entries.
+duplicated names and entries without the `=` separator – it will deduplicate
+the variables and get rid of the nonsense entries.
 
 One interesting edge case is a space inside the variable *name*. My beloved
 shell – Nushell – has no problem with the following assignment:
 
     $env."Deployment Environment" = "prod"
 
-Python also is perfectly fine with it. However, if you run `bash`, it won't be
+Python is also perfectly fine with it. However, if you run `bash`, it won't be
 able to reference such variable: a whitespace is not allowed in the variable
 name!
 
@@ -189,12 +240,14 @@ just for that!
 
 ## The standard format
 
-So what can *safely* be stored inside an envvar? A popular
+So what can be *safely* stored inside an envvar? A popular
 misconception, repeated on
 [StackOverflow](https://stackoverflow.com/a/2821183), and by ChatGPT, is that
-[POSIX](https://en.wikipedia.org/wiki/POSIX) allows only **uppercase** envvars.
-But this is NOT [what the standard
-says](https://pubs.opengroup.org/onlinepubs/9699919799/):
+[POSIX](https://en.wikipedia.org/wiki/POSIX) permits only **uppercase** envvars,
+and anything beyond that is undefined behavior.
+
+But this is seriously **NOT**
+[what the standard says](https://pubs.opengroup.org/onlinepubs/9699919799/):
 
 > *These strings have the form name=value; names shall not contain the character
 > '='. For values to be portable across systems conforming to POSIX.1-2017, the
@@ -214,25 +267,28 @@ says](https://pubs.opengroup.org/onlinepubs/9699919799/):
 > define any environment variables with names from this name space without
 > modifying the behavior of the standard utilities.*
 
-This sentence about upperacase is *descriptive* of POSIX-specified utilities:
-not *prescriptive* for your programs. There’s no “shall” binding your
-applications to that syntax. Furthermore, you are *encouraged* to use lowercase
+Yes, POSIX-specified utilities have uppercase envvars, but this is not
+*prescriptive* for your programs. There’s no “shall”, binding your applications
+to that syntax. Quite the contrary: you are *encouraged* to use lowercase
 letters for you envvar, because they won't collide with the standard "system"
-tools.
+tools. And all POSIX-compliant applications must preserve names of the envvars:
+“applications shall tolerate the presence of such names”. The only rule is that
+the name cannot contain an equal sign.
 
-In reality, no one uses lowercase. The *proper etiquete* in software
-development is to use `ALL_UPPERCASE` env vars.
+But in reality, no one uses lowercase. The *proper etiquete* in software
+development is to always use `ALL_UPPERCASE` env vars.
 
+## In general, my recommendation is...
 
-In general, my recommendation is to use `^[A-Z_][A-Z0-9_]*$` for names, and
-UTF-8 for values. You should not have any problems on Linux. If you want to be
-super safe, instead of UTF-8 stick to the POSIX mandated PCS – Portable
-Character Set.
+...to use `^[A-Z_][A-Z0-9_]*$` for names, and UTF-8 for values. You should not
+have any problems on Linux. If you want to be super safe, instead of UTF-8
+stick to the POSIX mandated PCS (which is, essentially, ASCII without control
+characters).
 
 
 ## Wow, I really enjoyed writing this
 
-But is it interesting read? If so...
+But was it an interesting read? If so...
 
 {{<subscribe>}}
 
