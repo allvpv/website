@@ -1,48 +1,34 @@
 +++
 date = '2025-09-20'
 draft = true
-title = "Environment variables are a legacy mess"
+title = "Environment variables are a legacy mess: Let's dive deep into them"
 toc = false
 +++
-![Green terminal displaying the Nushell in action](nushell.jpg)
-
-<!-- This is a draft. It should be ignored by Hugo, and not displayed on the website. -->
-<!-- This is a draft. It should be ignored by Hugo, and not displayed on the website. -->
-<!-- This is a draft. It should be ignored by Hugo, and not displayed on the website. -->
-<!-- This is a draft. It should be ignored by Hugo, and not displayed on the website. -->
-<!-- This is a draft. It should be ignored by Hugo, and not displayed on the website. -->
-<!-- This is a draft. It should be ignored by Hugo, and not displayed on the website. -->
-<!-- This is a draft. It should be ignored by Hugo, and not displayed on the website. -->
+![Green terminal showing Nushell in action](nushell.jpg)
 
 In software engineering, the new often meets the old, and some things never
 change for decades. Even though programming languages have rapidly evolved, the
-overall scaffolding that OS gives for running the processes has been pretty
-much the same since the days of Unix.
+scaffolding that OSes give for running processes hasn’t changed much since Unix.
 
-If you need to somehow parametrize your application at runtime by passing a
-couple of ad-hoc variables (without creating temporary files or using some
-custom solution involving IPC), you are doomed to use pretty awkward and
-outdated interface:
+In general, if you need to parametrize your application at runtime by passing a
+few ad-hoc variables (without temporary files or a custom solution involving IPC
+or networking), you're doomed to a pretty awkward, outdated interface:
 
-## Environment variables (envvars).
+## Environment variables.
 
-There is no namespace to it, no types. Just a flat, embarassingly global
+There are no namespaces for them, no types. Just a flat, embarrassingly global
 dictionary of strings.
 
-### And they are everywhere.
+**And they are everywhere.** Even programmers encounter them: perhaps when
+exporting the `SECRET_API_KEY` during setup, or while building a Docker image.
 
-Even a novice programmer is supposed to know them. (They saw it at some point,
-maybe during a local setup that required exporting the `SECRET_API_KEY`, or
-while building a Docker image).
-
-But what really are those envvars? Is it some kind of a special map inside the
-operating system? If no, then who owns them and how do they propagate? And what
-can be stored inside them?
+But what exactly are these envvars? Are they some kind of special map inside
+the operating system? If not, who owns them and how do they propagate?
 
 
 ## Where do they come from?
 
-In a nutshell: They are passed from parent to child.
+In a nutshell: they're passed from parent to child.
 
 ```
     841 ?        00:00:00 sshd
@@ -54,11 +40,12 @@ In a nutshell: They are passed from parent to child.
    5560 pts/0    00:00:00                      \_ ps
 ```
 
-In Linux, a program must use `execve` syscall to execute another program. When
-typing `ls` in `bash`, as well as using `subprocess.run` in Python, or, at a
-higher level, launching the code editor or web browser -- it all comes down to
-`execve`, preceeded by `fork`. The familiy of `exec*` C functions also uses
-`execve` underneath. And `execve` takes three arguments:
+On Linux, a program must use the `execve` syscall to execute another program.
+Whether you type `ls` in Bash, call `subprocess.run` in Python, or launch a
+code editor, it ultimately comes down to `execve`, preceded by a `fork`. The
+`exec*` family of C functions also relies on `execve`.
+
+This syscall takes three arguments:
 
 ```c
 SYSCALL_DEFINE3(execve,
@@ -67,34 +54,34 @@ SYSCALL_DEFINE3(execve,
 		const char __user *const __user *, envp)
 ```
 
-So, for `ls -lah` invocation in the terminal:
-- the 1st argument will be `/usr/bin/ls`, the executable path,
-- the 2nd argument will be `['/usr/bin/ls', '-lah']`, the array of command line
-  arguments (the executable is usually the "zero" argument),
-- the 3rd argument will be, for example `['PATH=/bin', 'USER=allvpv']`: the
-  array of envvars, much longer in real life.
+For example, an invocation of `ls -lah` in the terminal produces the following
+arguments:
+1. `/usr/bin/ls`: the executable path,
+2. `['/usr/bin/ls', '-lah']`: the array of command line arguments – the
+   implicit first ("zero") argument is usually the executable name,
+3. `['PATH=/bin:/usr/bin', 'USER=allvpv']`: the array of envvars (typically
+   much longer).
 
-The default convention is to pass all envvars from the parent process to the
-child process. However, nothing prevents the parent process from passing a
-completely different (or even empty) set of envvars when using the `execve`
-system call!
+By default, all envvars are passed from the parent to the child. However,
+nothing prevents a parent process from passing a completely different or even
+empty environment when calling `execve`! In practice, most tooling passes the
+environment down: Bash, Python’s `subprocess.exec`, the C library `execl`, and
+so on.
 
-By default, however, all tooling passes the environment down: `bash`, as well
-as Python (when you use `subprocess.exec`), or C library `execl` function, etc.
-And this is what you expect to happen: the variables are inherited by the child
-processes. That's the point – to keep track of the *environment*.
+This is what you expect – variables are inherited by child processes. That’s
+the point – to track the environment.
 
-> Which tools do *not* explicitly pass the environment down?
+> Which tools do *not* pass the parent's environment?
 >
-> For example, the `login` executable, which is used when signing onto a
-> system, sets up a fresh environment for it's child processes.
+> For example, the `login` executable, used when signing into a
+> system, sets up a fresh environment for its children.
 
 
-## Where are they going?
+## Where do they go?
 
-After running the new program, the kernel just dumps the variables to the
-memory on stack. It's just a sequence of null-terminated envvar definitions (if
-you don't have a background in C, think of it as one big immutable `string`):
+After launching the new program, the kernel dumps the variables on the stack as
+a sequence of null-terminated strings which contain the envvar definitions.
+Here is a hex view:
 
     00000000: 484f 4d45 3d2f 0069 6e69 743d 2f73 6269  HOME=/ init=/sbi
     00000010: 6e2f 696e 6974 004e 4554 574f 524b 5f53  n/init NETWORK_S
@@ -109,70 +96,63 @@ you don't have a background in C, think of it as one big immutable `string`):
     000000a0: 3a2f 7362 696e 3a2f 6269 6e00 5057 443d  :/sbin:/bin PWD=
     000000b0: 2f00 726f 6f74 6d6e 743d 2f72 6f6f 7400  / rootmnt=/root
 
-This static layout cannot be easily modified or extended: the program has to
-copy those variables into some internal data structure.
-
-Let's explore what underlying structure is used for storing the envvars in some
-most essential programming tools/languages/frameworks. Out of curiosity, I've
-checked the source code of them and came up with a brief description.
+This static layout can’t easily be modified or extended; the program must copy
+those variables into its own data structure. Let’s look at how Bash, C, and
+Python store envvars internally. I analyzed their source code and came up with
+a summary.
 
 ### Bash
 
-It stores the variables in a ***hashmap***. Or, to be more precise, in a
-***stack of hashmaps***. When you execute a process inside `bash`, `bash`
-traverses the stack of hashmaps to check which variables are marked as
-environmental, and copies them into an array passed to the child process.
+It stores the variables in a ***hashmap***. Or, more precisely, in a ***stack
+of hashmaps***.
 
-> *Side note:* Why the stack is needed?
+When you spawn a new process using Bash, it traverses the stack to find
+variables marked as exported and copies them into the environment array passed
+to the child.
+
+> *Side note:* Why is traversing the stack needed?
 >
->  Each function invocation in `bash` creates a new local scope – a new entry
->  on the stack. If you declare your variable with `local`, it then ends up in
->  this locally-scoped hashmap.
+>  Each function invocation in Bash creates a new local scope – a new entry
+>  on the stack. If you declare your variable with `local`, it ends up in this
+>  locally-scoped hashmap.
 >
-> What's interesting is that you can export a `local` variable too! All
-> subsequent processes executed inside this function will inherit this
-> variable. (That is, it will be passed to them as envvar). And when the
-> function exits, the variable is, of course, dropped.
+> What's interesting is that you can export a `local` variable too!
 >
-> ```
-> function localyScoped() {
+> ```bash
+> function locallyScoped() {
 >     local PATH="$PATH:/opt/secret/bin"
 >     export PATH
 >     env           # <- sees the PATH with /opt/scecret/bin
 > }
 >
 >
-> localyScoped
+> locallyScoped
 > env               # <- sees the PATH without modification
 > ```
 >
-> I would never have learned this without diving into the source code of
-> `bash`. My intuitive (wrong) assumption was that `export` *automatically
-> makes the variable global*, like `declare -g`! Super interesting stuff.
+> I wouldn't have learned this without diving into Bash source. My intuitive
+> (wrong) assumption was that `export` *automatically makes the variable
+> global* – like `declare -g`! Super interesting stuff.
 
 ### The default C library on Linux: `glibc`
 
-`glibc` creates a dynamic `environ` array; this array can be managed by
-`putenv` and `getenv` library functions.
-
-So the time complexity of `getenv` and `putenv` is *linear* regarding the
-number of envvars. Remember – envvars are not a high-performance dictionary and
-you should not abuse them.
+`glibc` exposes a dynamic `environ` array, managed via `putenv` and `getenv`
+library functions. It uses an array, so the time complexity of `getenv` and
+`putenv` is *linear* with respect to the number of envvars. Remember – envvars
+are not a high-performance dictionary and you should not abuse them.
 
 ### Python
 
-Python is an interesting case: it tightly couples it's environment to the C
-library, which may lead to some unexpected problems.
+Python is an interesting case: it couples its environment to the C library,
+which may lead to some unexpected problems.
 
-If you programmed some Python, you've probably encountered the `os.environ`
-dictionary.
-On startup, the `os.environ` dictionary is built from the C library `environ`
-array which is mentioned above.
+If you've programmed some Python, you've probably used the `os.environ`
+dictionary. On startup, `os.environ` is built from the C library's `environ`
+array.
 
-But the dictionary values are **NOT** the “ground truth” of environment
-variables for the child processes. Rather, each change to `os.environ` calls
-the low-level, natively implemented `os.putenv` function, which in turn, calls
-`putenv` from the C library.
+But those dictionary values are **NOT** the “ground truth” for child processes.
+Rather, each change to `os.environ` invokes the native `os.putenv` function,
+which in turn calls the C library's `putenv`.
 
 > Note that the propagation is one-directional: modifying `os.environ` will call
 > `os.putenv`, but not the other way around. Call `os.putenv`, and `os.environ`
@@ -183,68 +163,60 @@ the low-level, natively implemented `os.putenv` function, which in turn, calls
 
 ## Liberal format
 
-The Linux kernel, as well as the most popular standard C library on Linux -
-`glibc` – is very liberal when it comes to the format of environment variables.
+The Linux kernel is very liberal about the format of environment variables, and
+so is `glibc`.
 
-For example, your C program (if it uses `glibc`) can manipulate environment –
-the global `environ` array – in such a way that you'll create several
-environment variables with the same name but of a different value. And when you
-execute a child process, it will also retain this "broken" setup.
+For example, your C program can manipulate the environment – the global
+`environ` array – such that several variables share the same name but have
+different values. And when you execute a child process, it will inherit this
+“broken” setup.
 
-You don't even need the equal sign, separating the name from the value! The
-usual entry is `NAME=VALUE`  but nothing prevents you to add
-`NONSENSE_WITH_EMOJI 😀` to this array. (Is it even a *variable* then, without
-a proper name and a value)?
+You don't even need an equals sign separating name from value! The usual entry
+is `NAME=VALUE`, but nothing prevents you from adding `NONSENSE_WITH_EMOJI 😀`
+to the array.
 
-So the kernel will happily accept any null-terminated string as an “environment
+The kernel happily accepts any null-terminated string as an “environment
 variable” definition. It just imposes a *size* limitation:
 
-- **Single variable**: 128Kb on a typical x64 Intel CPU. This is for the whole
-  definition – name + equal sign + value. It's calculated as [`PAGE_SIZE *
+- **Single variable**: 128 KiB on a typical x64 Intel CPU. This is for the
+  whole definition – name + equal sign + value. It's computed as [`PAGE_SIZE *
   32`](https://elixir.bootlin.com/linux/v2.6.24/source/include/linux/binfmts.h#L14).
-  No modern hardware uses pages smaller than 4Kb, so you can treat it as a lower bound,
-  unless you need to deal with some legacy embedded systems.
+  No modern hardware uses pages smaller than 4 KiB, so you can treat it as a
+  lower bound, unless you need to deal with some legacy embedded systems.
 
-- **Total**: 2MB on the *typical* machine. This limit is shared by envvars and
+- **Total**: 2 MiB on a typical machine. This limit is shared by envvars and
   the command line arguments. The calculation is a bit more complicated (see
-  `execve(2)` man page):
+  the `execve(2)` man page):
 
-        max(32 * PAGE_SIZE,  min(MAX_STACK_SIZE / 4,  6 Mb))
+        max(32 * PAGE_SIZE,  min(MAX_STACK_SIZE / 4,  6 MB))
 
   On a typical system, the limiting factor is the `MAX_STACK_SIZE`. Remember,
-  initially the envvars are stored on the stack! To prevent unpredictable
-  crashes, the system allows only 1/4 of stack for the envvars.
+  initially the envvars are dumped on the stack! To prevent unpredictable
+  crashes, the system allows only 1/4 of the stack for the envvars.
 
 
 ## Quirks
 
-But the fact that you can do something, does not mean that you should.
-
-For example, if you execute `bash` with the "broken" setup – containing
-duplicated names and entries without the `=` separator – it will deduplicate
-the variables and get rid of the nonsense entries.
+But the fact that you can do something does not mean that you should. For
+example, if you start Bash with the "broken" environment – duplicated names and
+entries without `=` – it deduplicates the variables and drops the nonsense.
 
 One interesting edge case is a space inside the variable *name*. My beloved
 shell – Nushell – has no problem with the following assignment:
 
     $env."Deployment Environment" = "prod"
 
-Python is also perfectly fine with it. However, if you run `bash`, it won't be
-able to reference such variable: a whitespace is not allowed in the variable
-name!
-
-Fortunately, the variable won't be completely lost – bash will pass it down to
-it's child processes. Bash even maintains a special hashtable – `invalid_env` –
-just for that!
-
+Python is fine with it, too. Bash, on the other hand, can’t reference it
+because whitespace isn’t allowed in variable names. Fortunately, the variable
+isn’t lost – Bash keeps such entries in a special hashmap called `invalid_env`
+and still passes them to child processes.
 
 ## The standard format
 
-So what can be *safely* stored inside an envvar? A popular
-misconception, repeated on
-[StackOverflow](https://stackoverflow.com/a/2821183), and by ChatGPT, is that
-[POSIX](https://en.wikipedia.org/wiki/POSIX) permits only **uppercase** envvars,
-and anything beyond that is undefined behavior.
+So what name and value can you *safely* use for your envvar? A popular
+misconception, repeated on [StackOverflow](https://stackoverflow.com/a/2821183)
+and by ChatGPT, is that [POSIX](https://en.wikipedia.org/wiki/POSIX) permits
+only **uppercase** envvars, and everything else is undefined behavior.
 
 But this is seriously **NOT**
 [what the standard says](https://pubs.opengroup.org/onlinepubs/9699919799/):
@@ -267,160 +239,29 @@ But this is seriously **NOT**
 > define any environment variables with names from this name space without
 > modifying the behavior of the standard utilities.*
 
-Yes, POSIX-specified utilities have uppercase envvars, but this is not
-*prescriptive* for your programs. There’s no “shall”, binding your applications
-to that syntax. Quite the contrary: you are *encouraged* to use lowercase
-letters for you envvar, because they won't collide with the standard "system"
-tools. And all POSIX-compliant applications must preserve names of the envvars:
-“applications shall tolerate the presence of such names”. The only rule is that
-the name cannot contain an equal sign.
+Yes, POSIX-specified utilities use uppercase envvars, but that's not
+*prescriptive* for your programs. Quite the contrary: you're *encouraged* to
+use lowercase for your envvars so they don’t collide with the standard "system"
+tools.
 
-But in reality, no one uses lowercase. The *proper etiquete* in software
-development is to always use `ALL_UPPERCASE` env vars.
+The only strict rule is that a variable name cannot contain an equals sign.
+POSIX requires compliant applications to preserve all variables that conform to
+this rule.
 
-## In general, my recommendation is...
+But in reality, not many applications use lowercase. The *proper etiquette* in
+software development is to use `ALL_UPPERCASE`.
 
-...to use `^[A-Z_][A-Z0-9_]*$` for names, and UTF-8 for values. You should not
-have any problems on Linux. If you want to be super safe, instead of UTF-8
-stick to the POSIX mandated PCS (which is, essentially, ASCII without control
-characters).
+## My pragmatic recommendation is...
 
-
-## Wow, I really enjoyed writing this
-
-But was it an interesting read? If so...
+...to use `^[A-Z_][A-Z0-9_]*$` for names, and UTF-8 for values. You shouldn’t
+hit problems on Linux. If you want to be super safe: instead of UTF-8, use the
+POSIX-mandated Portable Character Set (PCS) – essentially ASCII without control
+characters.
 
 {{<subscribe>}}
 
+## Wow, I really enjoyed writing this...
+
+...and I hope it wasn't a boring read.
 
 
-
-<!-- ## How to properly get the current username in Bash script? -->
-<!---->
-<!-- Recently I had to review code with this one peculiar line: -->
-<!---->
-<!--     EVALUATOR_NAME="${USER:-$(whoami)}" -->
-<!---->
-<!-- My first question was: isn't it redundant? Why cannot we stick to either -->
-<!-- `${USER}` or `$(whoami)`? If you struggle to understand this syntax let me -->
-<!-- unpack it: `${USER}` resolves to the value of the environment variable called -->
-<!-- `USER`, which – surprise! – should be set to your username. And `whoami` is a -->
-<!-- binary that, when executed, that prints the current username. `$(...)` captures -->
-<!-- command standard output, so `echo $(whomai)` is the same as `whoami` -->
-<!---->
-<!-- And `${VAR_NAME:-fallback_value}` is another bashism. If `VAR_NAME` is set and -->
-<!-- non-empty, that the value of `VAR_NAME` is used here, otherwise it fallbacks to -->
-<!-- `fallback_value`. -->
-<!---->
-<!-- So why cannot we stick to either `${USER}` or `$(whoami)`? If in your Linux -->
-<!-- terminal you'll type: -->
-<!---->
-<!--     env -->
-<!---->
-<!-- then you'll see all environment variables listed. But no one is preventing you -->
-<!-- to write: -->
-<!---->
-<!--     unset USER -->
-<!---->
-<!-- and `USER` is gone. -->
-
-
-<!-- ## Another options -->
-<!---->
-<!-- Of course, it wouldn't be UNIX if there were only two options. `${USER}` and -->
-<!-- `whoami` are probably most popular, but there is also: -->
-<!---->
-<!-- - `logname` -->
-<!-- - `: \\u; echo "${_@P}"` if you are on fairly new Bash (4.4 or newer); yes, really! -->
-<!--   I had no clue what it meant where I was it for the first time, but don't worry, -->
-<!--   we dive into this. -->
-<!-- - `${LOGNAME}` -->
-<!-- - `who am i` (yup!) -->
-<!-- - `id -un` -->
-<!---->
-<!-- and I am pretty sure that this list is not complete. -->
-
-
-
-<!-- I recently started doing infra work at my current company, improving crumbling -->
-<!-- infrastructue for AI-related services and tools. And sometimes I wonder, what -->
-<!-- went wrong with the software world that in 2025 I still have to bother writing -->
-<!-- `bash`! -->
-<!-- Anyway, Bash is still around, and r -->
-<!---->
-<!-- You know what I mean. Clever one-or-two-or-ten-liners next to the Docker -->
-<!-- `RUN` directive. `sh` spliced in the Jenkins pipelines. Full-blown startup -->
-<!-- script inside the image. Plus tiny `local_setup.sh` in the repo to export env -->
-<!-- vars. And so on. Bash is there and it's not going anywhere! -->
-<!---->
-<!-- Don't get me wrong, I looove writing bash! It's the same kind of love that I -->
-<!-- have for Makefiles, Objective-C, or any kind of arcane retro tech. However, -->
-<!-- arguing with someone (again!) that in their `for` loop they should use -->
-<!-- `${array[@]}` (instead of the default split by whitespace) feels like -->
-<!-- satisfying my inner nerd instead of doing actual productive work for my -->
-<!-- `$CORP`. -->
-<!---->
-<!-- So why bash!? -->
-<!---->
-<!-- In theory, I can embed inside a Docker image a modern shell like, for example, -->
-<!-- my beloved Nushell. But a new 40 Mb binary would raise some eyebrows. Plus it -->
-<!-- would need to pass compliance and security audit. What's worse, AI is not able -->
-<!-- to output 10 syntactically correct lines of Nushell. (This is a niche -->
-<!-- technology, afterall). So using Nushell for infra would paralize my colleagues -->
-<!-- and make them unable to collaborate: not everyone in my team is a Nushell -->
-<!-- afficionado, afterall. (Shout out to our intern Krzysiek, who is)! And don't -->
-<!-- even get me started about integration with external tools, like, for example, -->
-<!-- embedding Nu inside Dockerfile. -->
-<!---->
-<!-- Compare this to `bash` and its cute little ELF -- 2MB statically linked. Jokes -->
-<!-- aside, this binary is literally everywhere. I bet it is more widespread than -->
-<!-- the famous "1 billion devices running Java". And, last but not least, AI is -->
-<!-- super fluent in bash. (At least in comparison to us, mere mortals). -->
-<!---->
-<!-- And, in a nutshell, that's why bash sticks around. -->
-<!---->
-
-<!-- Sometimes I wonder, what went wrong with the software world that in 2025 I -->
-<!-- still have to write `bash`. Anyway, it is still around, at least in my -->
-<!-- `${CORP}`. And I need to write or review such code from time to time. -->
-<!---->
-<!-- You can learn horizontally, concept by concept, but you can also learn -->
-<!-- vertically, trying to tackle one thing in depth. This article has one -->
-<!-- theme: getting the current username in a Bash script. And everything -->
-<!-- that follows from that. -->
-<!---->
-<!-- Recently I had to review code with this one peculiar line: -->
-<!---->
-<!--     EVALUATOR_NAME="${USER:-$(whoami)}" -->
-<!---->
-<!-- My first question was: isn't it redundant? -->
-<!---->
-<!-- If you struggle to understand this syntax let me unpack it: -->
-<!---->
-<!-- > On Linux, `${USER}` resolves to the value of the environment variable called -->
-<!-- > `USER`, which – surprise! – should be set to your username. And `whoami` is a -->
-<!-- > binary that, when executed, that prints the current username. `$(...)` captures -->
-<!-- > command standard output, so `echo $(whomai)` is the same as `whoami`. -->
-<!-- > -->
-<!-- > And `${VAR_NAME:-fallback_value}` is another bashism. If `VAR_NAME` is set and -->
-<!-- > non-empty, that the value of `VAR_NAME` is used here, otherwise it fallbacks to -->
-<!-- > `fallback_value`. -->
-<!---->
-<!-- So why cannot we stick to either `${USER}` or `$(whoami)`? -->
-<!---->
-<!-- Anyway, that's what Cursor generated for my colleague, and I needed to review -->
-<!-- it. I asked the LLM for a possible reasoning of why this was chosen, but the -->
-<!-- answer was vague and non-convincing. -->
-<!---->
-<!-- And I went down the rabbit hole, doing a little bit of research  :) I will be -->
-<!-- focusing on how it works on Linux. -->
-
-<!-- ## Terrible code from AI assistants -->
-<!---->
-<!-- You probably noticed that AI coding tools (as for now) are doing a lot of -->
-<!-- overzelaous, too defensive checks and fallbacks. I imagine that reinforcement -->
-<!-- learning leads to that: models are heavily trained to complete the tasks -->
-<!-- against automated checker, before their context window ends, so they try -->
-<!-- everything to desperately “make it work”. There is no time to “tweak” the -->
-<!-- solution iteratively, if you have limited memory, so it's always better -->
-<!-- to do the validation multiple times than to miss it. -->

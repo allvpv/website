@@ -1,5 +1,5 @@
 Hi! My name is Przemek Kusiak, and I use an alias which is as incomprehensible
-as my name: **allvpv**. I live and work in 📍 **Warsaw**, **Poland**. I write
+as my name: **allvpv**. I live and work in 📍 **Warsaw**, **Poland** and write
 about computers. 
 
 Subscribe to my [RSS feed](/rss.xml). [Leave me an

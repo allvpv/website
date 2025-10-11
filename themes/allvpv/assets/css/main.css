@@ -27,10 +27,10 @@
 :root  {
   --color-bg-primary: hsl(0, 0%, 99%);
   --color-bg-secondary: hsl(0, 0%, 92.3%);
-  --color-text-primary: hsl(0, 0%, 9%);
+  --color-text-primary: hsl(32, 100%, 30%);
   --color-text-muted: hsl(0, 0%, 43.5%);
   --color-text-less-muted: hsl(0, 0%, 23.5%);
-  --color-text-more-muted: hsl(0, 0%, 53.5%);
+  --color-text-more-muted: hsl(32, 30%, 53.5%);
   --color-text-code: hsl(0, 0%, 20%);
   --color-selection-bg: hsl(0, 0%, 85.8%);
 }
@@ -148,9 +148,12 @@ pre {
   margin: var(--spacing-base) 0;
 }
 
+[data-theme="dark"] h1 {
+  color: var(--color-text-primary);
+}
+
 h1 {
   font-size: 2em;
-  color: var(--color-text-primary);
   font-weight: bold;
   margin: var(--spacing-base) 0;
   line-height: 1.0;
