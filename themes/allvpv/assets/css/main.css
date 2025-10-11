@@ -412,7 +412,7 @@ em {
 blockquote {
   margin: 1.5em 0px;
   padding: 0.5em 16px;
-  border-left: 6px solid var(--color-text-less-muted);
+  border-left: 5px solid var(--color-text-more-muted);
 }
 
 
