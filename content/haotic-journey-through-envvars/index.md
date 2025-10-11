@@ -4,6 +4,7 @@ draft = true
 title = "Environment variables"
 toc = false
 +++
+
 <!-- This is a draft. It should be ignored by Hugo, and not displayed on the website. -->
 <!-- This is a draft. It should be ignored by Hugo, and not displayed on the website. -->
 <!-- This is a draft. It should be ignored by Hugo, and not displayed on the website. -->
@@ -14,23 +15,23 @@ toc = false
 
 In software engineering, the new often meets the old, and some things never
 change for decades. Even though programming languages have rapidly evolved, the
-overall scaffolding that OS gives to running the processes has been pretty
+overall scaffolding that OS gives for running the processes has been pretty
 much the same since the days of Unix.
 
 In general, if you need to somehow parametrize your application at runtime by
 passing a couple of ad-hoc variables (without creating temporary files or using
-some custom IPC solution), forget about typing, namespaces, or any kind of
+some custom IPC solution), forget about types, namespaces, or any kind of
 modern interface.
 
-> You must use an *environment variable*.
+> You have to use use an *environment variable*.
 
 Even a novice programmer is supposed to know what it is. They saw it at some
 point, maybe during a local setup that required exporting the `SECRET_KEY`, or
 when changing some deployment configuration.
 
 So what really are those *environment variables*? Is it some kind of a special
-dict inside the operating system? If no, then who owns them and how do they
-propagate? And what can be stored inside them? What are the limitations?
+dictionary or map inside the operating system? If no, then who owns them and
+how do they propagate? And what can be stored inside them?
 
 Join me in exploring how environment variables really work on Linux.
 
@@ -38,8 +39,9 @@ Join me in exploring how environment variables really work on Linux.
 ## Where do they come from?
 
 In Linux, a program must use `execve` syscall to execute another program. When
-typing `ls` in `bash`, as well as using `subprocess.run` in Python, or clicking
-a program icon from the Start Menu, it all comes down to the `execve`.
+typing `ls` in `bash`, as well as using `subprocess.run` in Python, or, at a
+higher level, running your code editor, web browser -- it all comes down to
+`execve`.
 
 And `execve` takes three arguments:
 - the executable path
@@ -59,9 +61,9 @@ different (or even empty) set of env vars when using the `execve` system call!
 By default, however, all tooling passes the environment down: `bash`, as well
 as Python (when you use `subprocess.exec`), or C library `execl` function, etc.
 And this is what you expect to happen: the variables are inherited by the child
-process. That's the point – to keep track of the `environment`.
+processes. That's the point – to keep track of the *environment*.
 
-> What tools do *not* explicitly pass the environment down?
+> Which tools do *not* explicitly pass the environment down?
 >
 > For example, the `login` executable, which is used when signing onto a
 > system, sets up a fresh environment for the child processes.
@@ -70,18 +72,37 @@ process. That's the point – to keep track of the `environment`.
 ## Where are they going?
 
 After running the new program, the kernel just dumps the variables to an array
-on the stack. This static array cannot be easily modified. It cannot be
-extended with one more variable. The layout in memory simply does not allow for
-that.
-
-And that's why the program has to copy those variables to some modifiable data
-structure. That allows to adjust the environment while you are running the
-program.
+on the stack. This static array cannot be easily modified. So the program would
+then copy those variables to some modifiable data structure. That allows to
+adjust the environment while you are running the program.
 
 Let's explore what underlying structure is used for storing the environment
-variables in some most essential programming languages/frameworks.
+variables in some most essential programming tools/languages/frameworks.
 Out of curiosity, I've checked the source code of:
-- `bash` - it stores the variables in a hash map;
+- `bash`: it stores the variables in a ***hashmap***.
+    * Or, to be more precise, in a ***stack of hashmaps***.
+      When you execute a process inside `bash`, `bash` traverses the stack of
+      hashmaps to copy all environment variables into an array, which is then
+      passed to the child process.
+
+      Why stack? Each function invocation in `bash` creates a local scope – a
+      new entry on the stack. If you declare your variable with `local`, it
+      then ends up in this local scope instead of the global hashmap. And when
+      the function exits, the scope is popped from the stack.
+
+      - As you probaly know, `export`ing a variable in `bash` makes it an
+        environment variable.
+
+        What's interesting is that you can export a `local` variable too – and
+        it does not make it global! Rather, all subsequent commands inside this
+        function will inherit this variable, that is, it will be passed to them
+        as an environment variable. And when the function exits, the variable
+        disappears.
+
+        - I would have never learn this without diving into the source code of
+          `bash`, just (wrongly) assuming that `export` means – *make it
+          global*! Super interesting stuff.
+
 - `glibc` (the default C library on Linux) – uses a dynamic array; this
   array can be managed by `putenv` and `getenv` library functions.
 - `Python` – uses `os.environ` dictionary, but this is only a proxy to more
