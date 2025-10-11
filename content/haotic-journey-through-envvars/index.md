@@ -23,17 +23,19 @@ passing a couple of ad-hoc variables (without creating temporary files or using
 some custom IPC solution), forget about types, namespaces, or any kind of
 modern interface.
 
-> You have to use use an *environment variable*.
+> You have to use use an *environment variable*
+
+I will call them *envvar* through the rest of the article for brevity.
 
 Even a novice programmer is supposed to know what it is. They saw it at some
 point, maybe during a local setup that required exporting the `SECRET_KEY`, or
 when changing some deployment configuration.
 
-So what really are those *environment variables*? Is it some kind of a special
+So what really are those envvars? Is it some kind of a special
 dictionary or map inside the operating system? If no, then who owns them and
 how do they propagate? And what can be stored inside them?
 
-Join me in exploring how environment variables really work on Linux.
+Join me in exploring how envvars really work on Linux.
 
 
 ## Where do they come from?
@@ -52,11 +54,12 @@ So, for `ls -lah` invocation in the terminal:
 - the 1st argument will be `/usr/bin/ls`,
 - the 2nd argument will be the array of arguments: `['/usr/bin/ls', '-lah']`
   (the executable is usually the "zero" argument),
-- the 3rd argument will be the array of environment variables.
+- and the 3rd argument will be, for example `['PATH=/usr/bin:/bin',
+  'USER=allvpv']`. 
 
-The default convention is to pass all environment variables of the parent
-process. However, nothing prevents the parent process from passing a completely
-different (or even empty) set of env vars when using the `execve` system call!
+The default convention is to pass all envvars of the parent process. However,
+nothing prevents the parent process from passing a completely different (or
+even empty) set of envvars when using the `execve` system call!
 
 By default, however, all tooling passes the environment down: `bash`, as well
 as Python (when you use `subprocess.exec`), or C library `execl` function, etc.
@@ -78,41 +81,49 @@ adjust the environment while you are running the program.
 
 Let's explore what underlying structure is used for storing the environment
 variables in some most essential programming tools/languages/frameworks.
-Out of curiosity, I've checked the source code of:
-- `bash`: it stores the variables in a ***hashmap***.
-    * Or, to be more precise, in a ***stack of hashmaps***.
-      When you execute a process inside `bash`, `bash` traverses the stack of
-      hashmaps to copy all environment variables into an array, which is then
-      passed to the child process.
+Out of curiosity, I've checked the source code of them and came up with a
+brief description.
 
-      Why stack? Each function invocation in `bash` creates a local scope – a
-      new entry on the stack. If you declare your variable with `local`, it
-      then ends up in this local scope instead of the global hashmap. And when
-      the function exits, the scope is popped from the stack.
+### Bash
 
-      - As you probaly know, `export`ing a variable in `bash` makes it an
-        environment variable.
+It stores the variables in a ***hashmap***. Or, to be more precise, in a
+***stack of hashmaps*** – one hashmap for each scope. When you execute a
+process inside `bash`, `bash` traverses the stack of hashmaps to check, which
+variables are marked as environmental, and copies them into an array, which is
+then passed to the child process.
 
-        What's interesting is that you can export a `local` variable too – and
-        it does not make it global! Rather, all subsequent commands inside this
-        function will inherit this variable, that is, it will be passed to them
-        as an environment variable. And when the function exits, the variable
-        disappears.
+> *Side note:* Why the stack is needed?
+>
+>  Each function invocation in `bash` creates a new local scope – a new entry
+>  on the stack. If you declare your variable with `local`, it then ends up in
+>  this locally-scoped hashmap.
+>
+> What's interesting is that you can export a `local` variable too – and it
+> does not make it global! Rather, all subsequent processes executed inside
+> this function will inherit this variable. (That is, it will be passed to them
+> as an environment variable).
+>
+> I would never have learned this without diving into the source code of
+> `bash`. My intuitive (wrong) assumption would be that `export`
+> means – *make it global*! Super interesting stuff.
 
-        - I would have never learn this without diving into the source code of
-          `bash`, just (wrongly) assuming that `export` means – *make it
-          global*! Super interesting stuff.
+### The default C library on Linux: `glibc`
 
-- `glibc` (the default C library on Linux) – uses a dynamic array; this
-  array can be managed by `putenv` and `getenv` library functions.
-- `Python` – uses `os.environ` dictionary, but this is only a proxy to more
-  low-level, natively implemented `os.putenv` and `os.getenv` functions. They,
-  in turn, call `putenv` and `getenv` from the C library. So the C library is
-  responsible for managing the “ground truth” state of environment variables.
+Creates a dynamic `environ` array; this array can be managed by `putenv` and
+`getenv` library functions. Each `getenv` or `putenv` invocation is O(n), but
+`n` is usually small.
 
-  The propagation is one-directional. Modifying `os.environ` will call
-  `os.putenv`, but not the other way around. Call `os.putenv`, and `os.environ`
-  won't be updated.
+### Python
+
+On startup, the `os.environ` dictionary is built from the
+`environ` array managed by the C library. Each change to `os.environ` calls the low-level,
+natively implemented `os.putenv` function, which in turn, calls `putenv` from
+the C library. So the C library is responsible for managing the “ground
+truth” state of environment variables, which are passed to child processes.
+
+  Note that the propagation is one-directional: modifying `os.environ` will
+  call `os.putenv`, but not the other way around. Call `os.putenv`, and
+  `os.environ` won't be updated.
 
 
 ## Liberal format
@@ -132,15 +143,14 @@ the value) but nothing prevents you to add `NONSENSE_WITH_EMOJI 😀` to this
 array. (Is it even a *variable* then, without a proper name and a value)?
 
 So the kernel will happily accept any null-terminated string as an “environment
-variable” definition. Just adhere to the following limit:
+variable” definition. It just imposes a *size* limit:
 
-- Size of a single env var (name + equal sign + value) [cannot be more then
-  `PAGE_SIZE * 32`](https://elixir.bootlin.com/linux/v2.6.24/source/include/linux/binfmts.h#L14):
-  that is 128Kb on a typical x64 Intel CPU.
+- **Single** env var size (name + equal sign + value) [`PAGE_SIZE *
+  32`](https://elixir.bootlin.com/linux/v2.6.24/source/include/linux/binfmts.h#L14).
+  ~ 128Kb on a typical x64 Intel CPU.
 
-- Limit on the total size of the command-line argument (argv) and environment
-  (envp) strings. The calculation is a bit more complicated (see `execve(2)`
-  man page). On my machine, it's 2MB.
+- **Total** env vars + argv size: The calculation is a bit more complicated
+  (see `execve(2)` man page). On my machine, it's 2MB.
 
 
 ## The standard format

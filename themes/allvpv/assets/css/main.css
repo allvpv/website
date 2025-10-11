@@ -181,6 +181,7 @@ h4,
 h5 {
   margin: var(--spacing-base) 0;
   font-weight: bold;
+  color: var(--color-text-primary);
 }
 
 time {
