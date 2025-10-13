@@ -202,7 +202,8 @@ example, if you start Bash with the "broken" environment – duplicated names an
 entries without `=` – it deduplicates the variables and drops the nonsense.
 
 One interesting edge case is a space inside the variable *name*. My beloved
-shell – Nushell – has no problem with the following assignment:
+shell – [Nushell](https://www.nushell.sh/) – has no problem with the following
+assignment:
 
     $env."Deployment Environment" = "prod"
 
@@ -215,9 +216,9 @@ called](https://github.com/bminor/bash/blob/a8a1c2fac029404d3f42cd39f5a20f24b6e4
 ## The standard format
 
 So what name and value can you *safely* use for your envvar? A popular
-misconception, repeated on [StackOverflow](https://stackoverflow.com/a/2821183)
-and by ChatGPT, is that [POSIX](https://en.wikipedia.org/wiki/POSIX) permits
-only **uppercase** envvars, and everything else is undefined behavior.
+misconception, repeated on StackOverflow and by ChatGPT, is that
+[POSIX](https://en.wikipedia.org/wiki/POSIX) permits only **uppercase**
+envvars, and everything else is undefined behavior.
 
 But this is seriously **NOT**
 [what the standard says](https://pubs.opengroup.org/onlinepubs/9699919799/):
