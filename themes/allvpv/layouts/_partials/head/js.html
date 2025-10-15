@@ -6,12 +6,12 @@
   }}
   {{- with . | js.Build $opts }}
     {{- if hugo.IsDevelopment }}
-      <script src="{{ .RelPermalink }}"></script>
+<script src="{{ .RelPermalink }}"></script>
     {{- else }}
       {{- with . | fingerprint }}
-        <script src="{{ .RelPermalink }}" integrity="{{ .Data.Integrity }}" crossorigin="anonymous"></script>
+<script src="{{ .RelPermalink }}" integrity="{{ .Data.Integrity }}" crossorigin="anonymous"></script>
       {{- end }}
     {{- end }}
   {{- end }}
-  <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
 {{- end }}

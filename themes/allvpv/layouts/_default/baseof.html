@@ -1,25 +1,25 @@
 <!DOCTYPE html>
 <html lang="{{ site.Language.LanguageCode }}" dir="{{ or site.Language.LanguageDirection `ltr` }}">
 <head>
-{{ partial "head.html" . }}
+  {{ partial "head.html" . }}
 </head>
 <body>
-{{ $themeToggleJS := resources.Get "js/theme.js" }}
-{{ with $themeToggleJS }}
+  {{ $themeToggleJS := resources.Get "js/theme.js" }}
+  {{ with $themeToggleJS }}
   <script>{{ .Content | safeJS }}</script>
-{{ end }}
-{{ $themeToggleJS := resources.Get "js/umami.js" }}
-{{ with $themeToggleJS }}
+  {{ end }}
+  {{ $themeToggleJS := resources.Get "js/umami.js" }}
+  {{ with $themeToggleJS }}
   <script defer data-website-id="8e0e3248-1851-495f-912a-7184eb497044">{{ .Content | safeJS }}</script>
-{{ end }}
+  {{ end }}
   <header>
-{{ partial "header.html" . }}
+    {{ partial "header.html" . }}
   </header>
   <main>
-{{ block "main" . }}{{ end }}
+    {{ block "main" . }}{{ end }}
   </main>
   <footer>
-{{ partial "footer.html" . }}
+    {{ partial "footer.html" . }}
   </footer>
 </body>
 </html>

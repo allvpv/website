@@ -4,6 +4,7 @@
 {{ with .OutputFormats.Get "rss" }}
   {{ printf `<link rel=%q type=%q href=%q title=%q>` .Rel .MediaType.Type .Permalink site.Title | safeHTML }}
 {{ end }}
+{{ partialCached "head/opengraph.html" . }}
 {{ partialCached "head/favicon.html" . }}
 {{ partialCached "head/css.html" . }}
 {{ partialCached "head/js.html" . }}
